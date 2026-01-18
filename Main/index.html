@@ -101,8 +101,7 @@
             font-weight: 600;
         }
 
-        .form-group input,
-        .form-group select {
+        .form-group input {
             width: 100%;
             padding: 12px;
             background: #1f1d29;
@@ -115,8 +114,7 @@
             transition: border-color 0.3s ease;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
+        .form-group input:focus {
             outline: none;
             border-color: #1abc9c;
         }
@@ -148,16 +146,10 @@
             font-size: 13px;
         }
 
-        .room-code-display {
-            display: inline-block;
-            background: #1abc9c;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-weight: bold;
-            font-size: 14px;
-            margin-left: 8px;
+        .helper-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
         }
 
         footer {
@@ -171,12 +163,6 @@
 
         footer span {
             font-weight: 600;
-        }
-
-        .helper-text {
-            font-size: 12px;
-            color: #888;
-            margin-top: 4px;
         }
     </style>
 </head>
@@ -207,6 +193,12 @@
                     <input type="password" id="loginPassword" required placeholder="Enter your password">
                 </div>
 
+                <div class="form-group">
+                    <label>Room Code</label>
+                    <input type="text" id="loginRoomCode" placeholder="Enter your assigned room code" style="text-transform: uppercase;">
+                    <div class="helper-text">Room code is assigned by the Content Coordinator. Admins can leave this blank.</div>
+                </div>
+
                 <button type="submit" class="btn">Login</button>
             </form>
         </div>
@@ -230,34 +222,10 @@
                     <input type="password" id="registerPassword" required placeholder="Min 8 characters">
                 </div>
 
-                <div class="form-group">
-                    <label>Role</label>
-                    <select id="registerRole" required onchange="toggleRoomCode()">
-                        <option value="">Select your role</option>
-                        <option value="Project Lead">Project Lead</option>
-                        <option value="Reviewer">Reviewer</option>
-                        <option value="Executive Approver">Executive Approver</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="roomCodeGroup" style="display: none;">
-                    <label>Room Code <span class="room-code-display">Required</span></label>
-                    <input type="text" id="registerRoomCode" placeholder="e.g., TECH2026" style="text-transform: uppercase;">
-                    <div class="helper-text">Enter the room code provided by your Content Coordinator</div>
-                </div>
-
-                <div class="form-group" id="roomSelectGroup" style="display: none;">
-                    <label>Select Room</label>
-                    <select id="registerRoomSelect">
-                        <option value="">Choose a room</option>
-                    </select>
-                    <div class="helper-text">Your assigned room will determine your workspace</div>
-                </div>
-
                 <button type="submit" class="btn">Register</button>
 
                 <div class="note">
-                    Note: Get your room code from the Content Coordinator
+                    After registration, the Content Coordinator will assign you a role and room code
                 </div>
             </form>
         </div>
@@ -269,21 +237,15 @@
 </footer>
 
 <script>
-    // Shared data storage - in real app, this would be in a database
-    // This simulates data shared between admin and login pages
-    let rooms = [
-        { id: 1, name: "Tech Projects 2026", code: "TECH2026", description: "Technology and innovation projects", capacity: 50 },
-        { id: 2, name: "Marketing Team", code: "MARK2026", description: "Marketing campaigns and strategies", capacity: 30 }
-    ];
-
-    // Mock user database (in real app, this would be server-side)
+    // Shared data storage - synced with localStorage
     // Pre-configured Admin account - cannot be deleted or modified
     const ADMIN_ACCOUNT = { 
         email: "admin@system.com", 
         password: "admin123", 
         role: "Admin", 
         name: "Content Coordinator", 
-        roomCode: null 
+        roomCode: null,
+        status: "active"
     };
     
     let users = [ADMIN_ACCOUNT];
@@ -298,85 +260,59 @@
         document.getElementById(tabName + 'Tab').classList.add('active');
     }
 
-    function toggleRoomCode() {
-        const role = document.getElementById('registerRole').value;
-        const roomCodeGroup = document.getElementById('roomCodeGroup');
-        const roomSelectGroup = document.getElementById('roomSelectGroup');
-        
-        if (role && role !== 'Admin') {
-            roomCodeGroup.style.display = 'block';
-            roomSelectGroup.style.display = 'block';
-            document.getElementById('registerRoomCode').required = true;
-            
-            // Populate room dropdown
-            populateRoomDropdown();
-        } else {
-            roomCodeGroup.style.display = 'none';
-            roomSelectGroup.style.display = 'none';
-            document.getElementById('registerRoomCode').required = false;
-        }
-    }
-
-    function populateRoomDropdown() {
-        const select = document.getElementById('registerRoomSelect');
-        select.innerHTML = '<option value="">Choose a room</option>' + 
-            rooms.map(room => `<option value="${room.code}">${room.name} (${room.code})</option>`).join('');
-    }
-
-    // Sync room code with dropdown selection
-    document.addEventListener('DOMContentLoaded', function() {
-        const roomSelect = document.getElementById('registerRoomSelect');
-        const roomCodeInput = document.getElementById('registerRoomCode');
-        
-        roomSelect.addEventListener('change', function() {
-            if (this.value) {
-                roomCodeInput.value = this.value;
-            }
-        });
-
-        roomCodeInput.addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
-            const matchingRoom = rooms.find(r => r.code === this.value);
-            if (matchingRoom) {
-                roomSelect.value = matchingRoom.code;
-            }
-        });
-    });
-
     function handleLogin(event) {
         event.preventDefault();
 
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const roomCode = document.getElementById('loginRoomCode').value.toUpperCase();
 
         // Check credentials
         const user = users.find(u => u.email === email && u.password === password);
 
-        if (user) {
-            // Store user info in sessionStorage for use across pages
-            sessionStorage.setItem('currentUser', JSON.stringify(user));
-            
-            alert(`Login successful!\nWelcome, ${user.name}`);
-            
-            // Redirect based on role
-            switch(user.role) {
-                case 'Admin':
-                    window.location.href = 'AdminMain.html';
-                    break;
-                case 'Project Lead':
-                    window.location.href = 'PLmain.html';
-                    break;
-                case 'Reviewer':
-                    window.location.href = 'ReviewerMain.html';
-                    break;
-                case 'Executive Approver':
-                    window.location.href = 'ApproverMain.html';
-                    break;
-                default:
-                    alert('Invalid role');
-            }
-        } else {
+        if (!user) {
             alert('Invalid email or password');
+            return;
+        }
+
+        // Check if user is admin (skip room code check)
+        if (user.role === 'Admin') {
+            sessionStorage.setItem('currentUser', JSON.stringify(user));
+            alert(`Login successful!\nWelcome, ${user.name}`);
+            window.location.href = 'AdminMain.html';
+            return;
+        }
+
+        // Check if user has been assigned a role and room by admin
+        if (!user.role || !user.roomCode) {
+            alert('Your account is pending activation.\n\nPlease contact the Content Coordinator to assign you a role and room code.');
+            return;
+        }
+
+        // Validate room code matches assigned room
+        if (roomCode !== user.roomCode) {
+            alert('Invalid room code!\n\nPlease enter the room code assigned to you by the Content Coordinator.');
+            return;
+        }
+
+        // Store user info in sessionStorage
+        sessionStorage.setItem('currentUser', JSON.stringify(user));
+        
+        alert(`Login successful!\nWelcome, ${user.name}`);
+        
+        // Redirect based on role
+        switch(user.role) {
+            case 'Project Lead':
+                window.location.href = 'PLmain.html';
+                break;
+            case 'Reviewer':
+                window.location.href = 'ReviewerMain.html';
+                break;
+            case 'Executive Approver':
+                window.location.href = 'ApproverMain.html';
+                break;
+            default:
+                alert('Invalid role. Please contact administrator.');
         }
     }
 
@@ -386,8 +322,6 @@
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
-        const role = document.getElementById('registerRole').value;
-        const roomCode = document.getElementById('registerRoomCode').value.toUpperCase();
 
         // Check if email already exists
         if (users.find(u => u.email === email)) {
@@ -401,41 +335,31 @@
             return;
         }
 
-        // Validate room code
-        if (role !== 'Admin') {
-            const roomExists = rooms.find(r => r.code === roomCode);
-            if (!roomExists) {
-                alert('Invalid room code! Please check with your Content Coordinator.');
-                return;
-            }
-        }
-
-        // Add new user
+        // Add new user with pending status
         const newUser = {
             email: email,
             password: password,
-            role: role,
+            role: null,  // Will be assigned by admin
             name: name,
-            roomCode: role !== 'Admin' ? roomCode : null
+            roomCode: null,  // Will be assigned by admin
+            status: 'pending'
         };
 
         users.push(newUser);
 
-        // Store updated users (in real app, this would sync to database)
+        // Store updated users
         localStorage.setItem('users', JSON.stringify(users));
 
-        alert(`Registration successful!\n\nName: ${name}\nRole: ${role}\nRoom: ${roomCode || 'N/A'}\n\nYou can now login with your credentials.`);
+        alert(`Registration successful!\n\nYour account has been created. The Content Coordinator will assign you a role and room code.\n\nYou will be notified once your account is activated.`);
 
         // Switch to login tab
         document.querySelectorAll('.tab')[0].click();
 
         // Clear form
         event.target.reset();
-        document.getElementById('roomCodeGroup').style.display = 'none';
-        document.getElementById('roomSelectGroup').style.display = 'none';
     }
 
-    // Load users from localStorage if available
+    // Load users from localStorage on page load
     window.addEventListener('DOMContentLoaded', function() {
         const storedUsers = localStorage.getItem('users');
         if (storedUsers) {
@@ -447,6 +371,12 @@
             users = [ADMIN_ACCOUNT];
             localStorage.setItem('users', JSON.stringify(users));
         }
+
+        // Auto-uppercase room code input
+        const roomCodeInput = document.getElementById('loginRoomCode');
+        roomCodeInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
     });
 </script>
 
