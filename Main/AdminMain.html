@@ -104,7 +104,7 @@
             border: 1px solid #1abc9c;
             border-radius: 14px;
             width: 90%;
-            max-width: 700px;
+            max-width: 900px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.6);
         }
 
@@ -301,6 +301,38 @@
         footer span {
             font-weight: 600;
         }
+
+        .filter-section {
+            background: #1f1d29;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .filter-section label {
+            color: #cfcfcf;
+            margin-right: 10px;
+            font-weight: 600;
+        }
+
+        .filter-section select {
+            padding: 8px 12px;
+            background: #2c2a38;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #e6e6e6;
+        }
+
+        .stats-badge {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
     </style>
 </head>
 
@@ -308,7 +340,7 @@
 
 <header>
     <h1>Admin Dashboard</h1>
-    <a href="login.html" class="logout">Logout</a>
+    <a href="index.html" class="logout">Logout</a>
 </header>
 
 <div class="container">
@@ -401,45 +433,25 @@
 <div id="manageUsersModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeModal('manageUsersModal')">&times;</span>
-        <h2>Manage Users</h2>
+        <h2>Manage Users <span class="stats-badge" id="userCount">0 Users</span></h2>
         
-        <form onsubmit="handleAddUser(event)" style="margin-bottom: 30px; padding: 20px; background: #1f1d29; border-radius: 8px;">
-            <h3 style="color: #1abc9c; margin-top: 0;">Add New User</h3>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="userName">Full Name *</label>
-                    <input type="text" id="userName" required placeholder="John Doe">
-                </div>
-                <div class="form-group">
-                    <label for="userEmail">Email *</label>
-                    <input type="email" id="userEmail" required placeholder="john@example.com">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="userRole">Role *</label>
-                    <select id="userRole" required>
-                        <option value="">Select Role</option>
-                        <option value="Project Lead">Project Lead</option>
-                        <option value="Reviewer">Reviewer</option>
-                        <option value="Executive Approver">Executive Approver</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="userRoomCode">Room Code *</label>
-                    <select id="userRoomCode" required>
-                        <option value="">Select Room</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="userPassword">Temporary Password *</label>
-                <input type="password" id="userPassword" required placeholder="Min 8 characters">
-            </div>
-            <button type="submit" class="btn">Add User</button>
-        </form>
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <label>Filter by Room:</label>
+            <select id="roomFilter" onchange="displayUsers()">
+                <option value="">All Rooms</option>
+            </select>
+            
+            <label style="margin-left: 20px;">Filter by Role:</label>
+            <select id="roleFilter" onchange="displayUsers()">
+                <option value="">All Roles</option>
+                <option value="Project Lead">Project Lead</option>
+                <option value="Reviewer">Reviewer</option>
+                <option value="Executive Approver">Executive Approver</option>
+            </select>
+        </div>
 
-        <h3 style="color: #1abc9c;">All Users</h3>
+        <h3 style="color: #1abc9c;">Registered Users</h3>
         <div class="data-table" id="usersTable"></div>
     </div>
 </div>
@@ -449,19 +461,39 @@
 </footer>
 
 <script>
-    // Data storage
+    // Shared data storage - synced with localStorage
     let rooms = [
-        { id: 1, name: "Tech Projects 2026", code: "TECH2026", description: "Technology and innovation projects", capacity: 50 }
+        { id: 1, name: "Tech Projects 2026", code: "TECH2026", description: "Technology and innovation projects", capacity: 50 },
+        { id: 2, name: "Marketing Team", code: "MARK2026", description: "Marketing campaigns and strategies", capacity: 30 }
     ];
     
-    let users = [
-        { id: 1, name: "Alice Johnson", email: "alice@example.com", role: "Project Lead", roomCode: "TECH2026" },
-        { id: 2, name: "Bob Smith", email: "bob@example.com", role: "Reviewer", roomCode: "TECH2026" }
-    ];
+    let users = [];
     
-    let projects = [
-        { id: 1, title: "Website Redesign", description: "Redesign company website with modern UI/UX", deadline: "2026-03-15", roomCode: "TECH2026" }
-    ];
+    let projects = [];
+
+    // Load data from localStorage on page load
+    window.addEventListener('DOMContentLoaded', function() {
+        // Load users from registration
+        const storedUsers = localStorage.getItem('users');
+        if (storedUsers) {
+            users = JSON.parse(storedUsers);
+        }
+
+        // Load rooms
+        const storedRooms = localStorage.getItem('rooms');
+        if (storedRooms) {
+            rooms = JSON.parse(storedRooms);
+        } else {
+            // Save initial rooms
+            localStorage.setItem('rooms', JSON.stringify(rooms));
+        }
+
+        // Load projects
+        const storedProjects = localStorage.getItem('projects');
+        if (storedProjects) {
+            projects = JSON.parse(storedProjects);
+        }
+    });
 
     // Tab switching
     function switchTab(tabId) {
@@ -488,7 +520,7 @@
         }
         
         if (modalId === 'manageUsersModal') {
-            populateUserRoomDropdown();
+            populateRoomFilter();
             displayUsers();
         }
     }
@@ -532,6 +564,8 @@
         };
         
         rooms.push(room);
+        localStorage.setItem('rooms', JSON.stringify(rooms));
+        
         alert(`Room created successfully!\n\nRoom Code: ${roomCode}\nShare this code with users for registration.`);
         event.target.reset();
         document.getElementById('generatedRoomCode').value = '';
@@ -551,34 +585,11 @@
         };
         
         projects.push(project);
+        localStorage.setItem('projects', JSON.stringify(projects));
+        
         alert(`Project opening created successfully!\n\nTitle: ${project.title}\nRoom: ${project.roomCode}`);
         event.target.reset();
         displayProjects();
-    }
-
-    // Add user
-    function handleAddUser(event) {
-        event.preventDefault();
-        
-        const email = document.getElementById('userEmail').value;
-        
-        if (users.find(u => u.email === email)) {
-            alert('User with this email already exists!');
-            return;
-        }
-        
-        const user = {
-            id: users.length + 1,
-            name: document.getElementById('userName').value,
-            email: email,
-            role: document.getElementById('userRole').value,
-            roomCode: document.getElementById('userRoomCode').value
-        };
-        
-        users.push(user);
-        alert(`User added successfully!\n\nName: ${user.name}\nRole: ${user.role}\nRoom: ${user.roomCode}`);
-        event.target.reset();
-        displayUsers();
     }
 
     // Populate dropdowns
@@ -588,9 +599,9 @@
             rooms.map(room => `<option value="${room.code}">${room.name} (${room.code})</option>`).join('');
     }
 
-    function populateUserRoomDropdown() {
-        const select = document.getElementById('userRoomCode');
-        select.innerHTML = '<option value="">Select Room</option>' + 
+    function populateRoomFilter() {
+        const select = document.getElementById('roomFilter');
+        select.innerHTML = '<option value="">All Rooms</option>' + 
             rooms.map(room => `<option value="${room.code}">${room.name} (${room.code})</option>`).join('');
     }
 
@@ -610,6 +621,7 @@
                         <th>Room Name</th>
                         <th>Room Code</th>
                         <th>Capacity</th>
+                        <th>Registered Users</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -617,11 +629,13 @@
         `;
         
         rooms.forEach(room => {
+            const userCount = users.filter(u => u.roomCode === room.code).length;
             html += `
                 <tr>
                     <td>${room.name}</td>
                     <td><span class="room-code">${room.code}</span></td>
                     <td>${room.capacity}</td>
+                    <td><span class="stats-badge">${userCount} users</span></td>
                     <td>
                         <button class="btn btn-small btn-danger" onclick="deleteRoom(${room.id})">Delete</button>
                     </td>
@@ -672,12 +686,28 @@
         container.innerHTML = html;
     }
 
-    // Display users
+    // Display users with filtering
     function displayUsers() {
         const container = document.getElementById('usersTable');
+        const roomFilter = document.getElementById('roomFilter').value;
+        const roleFilter = document.getElementById('roleFilter').value;
         
-        if (users.length === 0) {
-            container.innerHTML = '<div class="empty-state">No users added yet</div>';
+        // Filter users
+        let filteredUsers = users.filter(u => u.role !== 'Admin'); // Don't show admin
+        
+        if (roomFilter) {
+            filteredUsers = filteredUsers.filter(u => u.roomCode === roomFilter);
+        }
+        
+        if (roleFilter) {
+            filteredUsers = filteredUsers.filter(u => u.role === roleFilter);
+        }
+
+        // Update user count
+        document.getElementById('userCount').textContent = `${filteredUsers.length} Users`;
+        
+        if (filteredUsers.length === 0) {
+            container.innerHTML = '<div class="empty-state">No registered users yet</div>';
             return;
         }
         
@@ -695,16 +725,20 @@
                 <tbody>
         `;
         
-        users.forEach(user => {
+        filteredUsers.forEach(user => {
+            const roomName = rooms.find(r => r.code === user.roomCode)?.name || 'Unknown';
             html += `
                 <tr>
                     <td>${user.name}</td>
                     <td>${user.email}</td>
                     <td>${user.role}</td>
-                    <td><span class="room-code">${user.roomCode}</span></td>
                     <td>
-                        <button class="btn btn-small btn-info" onclick="editUserRole(${user.id})">Edit Role</button>
-                        <button class="btn btn-small btn-danger" onclick="deleteUser(${user.id})">Remove</button>
+                        <span class="room-code">${user.roomCode}</span>
+                        <div style="font-size: 11px; color: #888; margin-top: 4px;">${roomName}</div>
+                    </td>
+                    <td>
+                        <button class="btn btn-small btn-info" onclick="viewUserDetails('${user.email}')">View</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteUser('${user.email}')">Remove</button>
                     </td>
                 </tr>
             `;
@@ -714,10 +748,18 @@
         container.innerHTML = html;
     }
 
+    function viewUserDetails(email) {
+        const user = users.find(u => u.email === email);
+        const room = rooms.find(r => r.code === user.roomCode);
+        
+        alert(`User Details:\n\nName: ${user.name}\nEmail: ${user.email}\nRole: ${user.role}\nRoom Code: ${user.roomCode}\nRoom Name: ${room ? room.name : 'N/A'}`);
+    }
+
     // Delete functions
     function deleteRoom(id) {
-        if (confirm('Are you sure you want to delete this room?')) {
+        if (confirm('Are you sure you want to delete this room? Users in this room will lose access.')) {
             rooms = rooms.filter(r => r.id !== id);
+            localStorage.setItem('rooms', JSON.stringify(rooms));
             alert('Room deleted successfully!');
             displayRooms();
         }
@@ -726,29 +768,18 @@
     function deleteProject(id) {
         if (confirm('Are you sure you want to delete this project?')) {
             projects = projects.filter(p => p.id !== id);
+            localStorage.setItem('projects', JSON.stringify(projects));
             alert('Project deleted successfully!');
             displayProjects();
         }
     }
 
-    function deleteUser(id) {
+    function deleteUser(email) {
         if (confirm('Are you sure you want to remove this user?')) {
-            users = users.filter(u => u.id !== id);
+            users = users.filter(u => u.email !== email);
+            localStorage.setItem('users', JSON.stringify(users));
             alert('User removed successfully!');
             displayUsers();
-        }
-    }
-
-    function editUserRole(id) {
-        const user = users.find(u => u.id === id);
-        const newRole = prompt(`Change role for ${user.name}:\n\nEnter: Project Lead, Reviewer, or Executive Approver`, user.role);
-        
-        if (newRole && ['Project Lead', 'Reviewer', 'Executive Approver'].includes(newRole)) {
-            user.role = newRole;
-            alert('Role updated successfully!');
-            displayUsers();
-        } else if (newRole) {
-            alert('Invalid role. Please use: Project Lead, Reviewer, or Executive Approver');
         }
     }
 
