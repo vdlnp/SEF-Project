@@ -1,129 +1,453 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>System Bidding Project</title>
+    <meta charset="UTF-8">
+    <title>Project Bidding System - Login</title>
+    
     <style>
-        body { font-family: Arial; padding: 20px; }
-        .card { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 6px; }
-        .hidden { display: none; }
-        select, input { margin: 5px 0; padding: 6px; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #1f1d29; 
+            color: #e6e6e6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #1abc9c; 
+            color: white;
+            padding: 16px 32px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: 0.5px;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .auth-box {
+            background: #2c2a38;
+            padding: 40px;
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #444;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            color: #cfcfcf;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .tab:hover {
+            color: #1abc9c;
+        }
+
+        .tab.active {
+            color: #1abc9c;
+            border-bottom: 3px solid #1abc9c;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        h2 {
+            color: #1abc9c;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cfcfcf;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: #1f1d29;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #e6e6e6;
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1abc9c;
+        }
+
+        .btn {
+            width: 100%;
+            background: #1abc9c;
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #16a085;
+            box-shadow: 0 4px 12px rgba(26,188,156,0.4);
+            transform: translateY(-2px);
+        }
+
+        .note {
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+            font-size: 13px;
+        }
+
+        .room-code-display {
+            display: inline-block;
+            background: #1abc9c;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        footer {
+            background: #161421;
+            color: #bbb;
+            text-align: center;
+            padding: 14px;
+            font-size: 14px;
+            border-top: 1px solid #333333;
+        }
+
+        footer span {
+            font-weight: 600;
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
 
-<h2>System Bidding Project</h2>
+<header>
+    <h1>Project Bidding System</h1>
+</header>
 
-<!-- Sign In -->
-<div id="loginSection" class="card">
-    <h3>Sign In</h3>
-    <input id="usernameInput" type="text" placeholder="Enter username" />
-    <button onclick="login()">Login</button>
+<div class="container">
+    <div class="auth-box">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('login')">Login</div>
+            <div class="tab" onclick="switchTab('register')">Register</div>
+        </div>
+
+        <!-- Login Tab -->
+        <div id="loginTab" class="tab-content active">
+            <h2>Welcome Back</h2>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" required placeholder="your@email.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required placeholder="Enter your password">
+                </div>
+
+                <button type="submit" class="btn">Login</button>
+            </form>
+        </div>
+
+        <!-- Register Tab -->
+        <div id="registerTab" class="tab-content">
+            <h2>Create Account</h2>
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label>Full Name / Company Name</label>
+                    <input type="text" id="registerName" required placeholder="John Doe or ABC Company">
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="registerEmail" required placeholder="your@email.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="registerPassword" required placeholder="Min 8 characters">
+                </div>
+
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="registerRole" required onchange="toggleRoomCode()">
+                        <option value="">Select your role</option>
+                        <option value="Project Lead">Project Lead</option>
+                        <option value="Reviewer">Reviewer</option>
+                        <option value="Executive Approver">Executive Approver</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="roomCodeGroup" style="display: none;">
+                    <label>Room Code <span class="room-code-display">Required</span></label>
+                    <input type="text" id="registerRoomCode" placeholder="e.g., TECH2026" style="text-transform: uppercase;">
+                    <div class="helper-text">Enter the room code provided by your Content Coordinator</div>
+                </div>
+
+                <div class="form-group" id="roomSelectGroup" style="display: none;">
+                    <label>Select Room</label>
+                    <select id="registerRoomSelect">
+                        <option value="">Choose a room</option>
+                    </select>
+                    <div class="helper-text">Your assigned room will determine your workspace</div>
+                </div>
+
+                <button type="submit" class="btn">Register</button>
+
+                <div class="note">
+                    Note: Get your room code from the Content Coordinator
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
-<!-- Main App -->
-<div id="appSection" class="hidden">
-
-    <h3>Welcome, <span id="currentUser"></span></h3>
-
-    <!-- Create group -->
-    <div class="card">
-        <h3>Create Group</h3>
-        <input id="groupNameInput" type="text" placeholder="Group name" />
-        <button onclick="createGroup()">Create</button>
-    </div>
-
-    <!-- Groups List -->
-    <div id="groupsList" class="card">
-        <h3>Groups</h3>
-        <div id="groupContainer"></div>
-    </div>
-
-</div>
+<footer>
+    <span>Project Bidding System</span> | Secure Access Portal
+</footer>
 
 <script>
-    let currentUser = null;
+    // Shared data storage - in real app, this would be in a database
+    // This simulates data shared between admin and login pages
+    let rooms = [
+        { id: 1, name: "Tech Projects 2026", code: "TECH2026", description: "Technology and innovation projects", capacity: 50 },
+        { id: 2, name: "Marketing Team", code: "MARK2026", description: "Marketing campaigns and strategies", capacity: 30 }
+    ];
 
-    // Example in-memory database
-    let groups = []; 
-    /*
-       groups = [
-         { name: "Team Alpha",
-           members: {
-               admin: "alice",
-               lead: "bob",
-               approver: "chris",
-               reviewer: "diana"
-           }
-         }
-       ];
-    */
+    // Mock user database (in real app, this would be server-side)
+    // Pre-configured Admin account - cannot be deleted or modified
+    const ADMIN_ACCOUNT = { 
+        email: "admin@system.com", 
+        password: "admin123", 
+        role: "Admin", 
+        name: "Content Coordinator", 
+        roomCode: null 
+    };
+    
+    let users = [ADMIN_ACCOUNT];
 
-    function login() {
-        const username = document.getElementById("usernameInput").value.trim();
-        if (!username) return alert("Enter a username!");
+    function switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+        event.target.classList.add('active');
 
-        currentUser = username;
-        document.getElementById("currentUser").innerText = username;
-
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("appSection").classList.remove("hidden");
-
-        renderGroups();
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(tabName + 'Tab').classList.add('active');
     }
 
-    function createGroup() {
-        const name = document.getElementById("groupNameInput").value.trim();
-        if (!name) return alert("Enter a group name!");
+    function toggleRoomCode() {
+        const role = document.getElementById('registerRole').value;
+        const roomCodeGroup = document.getElementById('roomCodeGroup');
+        const roomSelectGroup = document.getElementById('roomSelectGroup');
+        
+        if (role && role !== 'Admin') {
+            roomCodeGroup.style.display = 'block';
+            roomSelectGroup.style.display = 'block';
+            document.getElementById('registerRoomCode').required = true;
+            
+            // Populate room dropdown
+            populateRoomDropdown();
+        } else {
+            roomCodeGroup.style.display = 'none';
+            roomSelectGroup.style.display = 'none';
+            document.getElementById('registerRoomCode').required = false;
+        }
+    }
 
-        groups.push({
-            name,
-            members: {
-                admin: currentUser,      // creator = admin by default
-                lead: "",
-                approver: "",
-                reviewer: ""
+    function populateRoomDropdown() {
+        const select = document.getElementById('registerRoomSelect');
+        select.innerHTML = '<option value="">Choose a room</option>' + 
+            rooms.map(room => `<option value="${room.code}">${room.name} (${room.code})</option>`).join('');
+    }
+
+    // Sync room code with dropdown selection
+    document.addEventListener('DOMContentLoaded', function() {
+        const roomSelect = document.getElementById('registerRoomSelect');
+        const roomCodeInput = document.getElementById('registerRoomCode');
+        
+        roomSelect.addEventListener('change', function() {
+            if (this.value) {
+                roomCodeInput.value = this.value;
             }
         });
 
-        document.getElementById("groupNameInput").value = "";
-        renderGroups();
-    }
-
-    function updateRole(groupIndex, role, value) {
-        groups[groupIndex].members[role] = value;
-    }
-
-    function renderGroups() {
-        const container = document.getElementById("groupContainer");
-        container.innerHTML = "";
-
-        groups.forEach((group, index) => {
-            const div = document.createElement("div");
-            div.className = "card";
-
-            div.innerHTML = `
-                <h4>${group.name}</h4>
-
-                <label>Admin</label><br>
-                <input type="text" value="${group.members.admin}" 
-                       oninput="updateRole(${index}, 'admin', this.value)" /><br>
-
-                <label>Project Lead</label><br>
-                <input type="text" value="${group.members.lead}" 
-                       oninput="updateRole(${index}, 'lead', this.value)" /><br>
-
-                <label>Executive Approver</label><br>
-                <input type="text" value="${group.members.approver}" 
-                       oninput="updateRole(${index}, 'approver', this.value)" /><br>
-
-                <label>Reviewer</label><br>
-                <input type="text" value="${group.members.reviewer}" 
-                       oninput="updateRole(${index}, 'reviewer', this.value)" />
-            `;
-
-            container.appendChild(div);
+        roomCodeInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+            const matchingRoom = rooms.find(r => r.code === this.value);
+            if (matchingRoom) {
+                roomSelect.value = matchingRoom.code;
+            }
         });
+    });
+
+    function handleLogin(event) {
+        event.preventDefault();
+
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        // Check credentials
+        const user = users.find(u => u.email === email && u.password === password);
+
+        if (user) {
+            // Store user info in sessionStorage for use across pages
+            sessionStorage.setItem('currentUser', JSON.stringify(user));
+            
+            alert(`Login successful!\nWelcome, ${user.name}`);
+            
+            // Redirect based on role
+            switch(user.role) {
+                case 'Admin':
+                    window.location.href = 'AdminMain.html';
+                    break;
+                case 'Project Lead':
+                    window.location.href = 'PLmain.html';
+                    break;
+                case 'Reviewer':
+                    window.location.href = 'ReviewerMain.html';
+                    break;
+                case 'Executive Approver':
+                    window.location.href = 'ApproverMain.html';
+                    break;
+                default:
+                    alert('Invalid role');
+            }
+        } else {
+            alert('Invalid email or password');
+        }
     }
+
+    function handleRegister(event) {
+        event.preventDefault();
+
+        const name = document.getElementById('registerName').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const role = document.getElementById('registerRole').value;
+        const roomCode = document.getElementById('registerRoomCode').value.toUpperCase();
+
+        // Check if email already exists
+        if (users.find(u => u.email === email)) {
+            alert('This email is already registered!');
+            return;
+        }
+
+        // Validate password length
+        if (password.length < 8) {
+            alert('Password must be at least 8 characters');
+            return;
+        }
+
+        // Validate room code
+        if (role !== 'Admin') {
+            const roomExists = rooms.find(r => r.code === roomCode);
+            if (!roomExists) {
+                alert('Invalid room code! Please check with your Content Coordinator.');
+                return;
+            }
+        }
+
+        // Add new user
+        const newUser = {
+            email: email,
+            password: password,
+            role: role,
+            name: name,
+            roomCode: role !== 'Admin' ? roomCode : null
+        };
+
+        users.push(newUser);
+
+        // Store updated users (in real app, this would sync to database)
+        localStorage.setItem('users', JSON.stringify(users));
+
+        alert(`Registration successful!\n\nName: ${name}\nRole: ${role}\nRoom: ${roomCode || 'N/A'}\n\nYou can now login with your credentials.`);
+
+        // Switch to login tab
+        document.querySelectorAll('.tab')[0].click();
+
+        // Clear form
+        event.target.reset();
+        document.getElementById('roomCodeGroup').style.display = 'none';
+        document.getElementById('roomSelectGroup').style.display = 'none';
+    }
+
+    // Load users from localStorage if available
+    window.addEventListener('DOMContentLoaded', function() {
+        const storedUsers = localStorage.getItem('users');
+        if (storedUsers) {
+            const loadedUsers = JSON.parse(storedUsers);
+            // Always keep admin account, add other registered users
+            users = [ADMIN_ACCOUNT, ...loadedUsers.filter(u => u.email !== ADMIN_ACCOUNT.email)];
+        } else {
+            // Initialize with admin only
+            users = [ADMIN_ACCOUNT];
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+    });
 </script>
 
 </body>
