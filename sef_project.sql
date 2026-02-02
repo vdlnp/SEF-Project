@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 02, 2026 at 10:40 AM
+-- Generation Time: Feb 02, 2026 at 07:08 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -40,7 +40,9 @@ CREATE TABLE `project` (
 --
 
 INSERT INTO `project` (`id`, `title`, `description`, `deadline`, `room_code`) VALUES
-(1, 'Software Quality Assurance', 'Software QA Testing methods for accurate result', '2026-02-19', '34DRWDVB');
+(1, 'Software Quality Assurance', 'Software QA Testing methods for accurate result', '2026-02-19', '34DRWDVB'),
+(3, 'Object Oriented Competition', 'Yesss', '2026-04-09', 'B4XH9VDK'),
+(4, 'NEW PROJECTTT', 'AAAAAAAAAAAAAAAAA', '2026-02-12', 'MP98JFTC');
 
 -- --------------------------------------------------------
 
@@ -65,8 +67,35 @@ CREATE TABLE `proposal` (
 --
 
 INSERT INTO `proposal` (`id`, `project_id`, `lead_id`, `title`, `description`, `deadline`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, 2, 'Proposal Draft', 'This is a draft', '2026-02-19', '', '2026-02-02 08:39:51', '2026-02-02 08:39:51'),
-(2, 1, 2, 'Proposal Draft 2', 'This is ANOTHER proposal', NULL, '', '2026-02-02 08:59:29', '2026-02-02 08:59:29');
+(4, 1, 2, 'pls pls ', 'aaaaa', NULL, '', '2026-02-02 16:40:14', '2026-02-02 16:40:14');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `proposals`
+--
+
+CREATE TABLE `proposals` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `room_code` varchar(20) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `file_path` varchar(255) DEFAULT NULL,
+  `status` enum('Under Review','Approved','Rejected') DEFAULT 'Under Review',
+  `reviewer_feedback` text DEFAULT NULL,
+  `submitted_at` datetime NOT NULL,
+  `reviewed_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `proposals`
+--
+
+INSERT INTO `proposals` (`id`, `user_id`, `room_code`, `title`, `description`, `file_path`, `status`, `reviewer_feedback`, `submitted_at`, `reviewed_at`) VALUES
+(1, 5, 'B4XH9VDK', 'FIRST PROPOSAL', 'omg pls yes', '1770054625_Screenshot (1).png', 'Under Review', NULL, '2026-02-03 01:50:25', NULL),
+(2, 2, '34DRWDVB', 'SECOND PROPOSAL', 'okay test test', '1770054901_Screenshot 2025-12-01 184058.png', 'Under Review', NULL, '2026-02-03 01:55:01', NULL),
+(3, 2, '34DRWDVB', 'OOPS I MEAN FISRT FOR ALI', 'YAYY', '', 'Under Review', NULL, '2026-02-03 01:55:48', NULL);
 
 -- --------------------------------------------------------
 
@@ -87,8 +116,7 @@ CREATE TABLE `proposal_attachments` (
 --
 
 INSERT INTO `proposal_attachments` (`id`, `proposal_id`, `file_name`, `file_path`, `uploaded_at`) VALUES
-(1, 1, 'proposal.txt', 'uploads/proposals/1770021591_proposal.txt', '2026-02-02 08:39:51'),
-(2, 2, 'proposal.txt', 'uploads/proposals/1770022769_proposal.txt', '2026-02-02 08:59:29');
+(4, 4, 'Screenshot (1).png', 'uploads/proposals/1770050414_Screenshot (1).png', '2026-02-02 16:40:14');
 
 -- --------------------------------------------------------
 
@@ -136,8 +164,11 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `room_code`, `status`) VALUES
 (1, 'Content Coordinator', 'user@admin.com', 'admin123', 'Admin', NULL, 'active'),
 (2, 'Ali  bin Abu', 'Ali@gmail.com', 'User@12345', 'Project Lead', '34DRWDVB', 'active'),
-(3, 'Arya - PETRONAS', 'Arya@gmail.com', 'user@12345', NULL, NULL, 'pending'),
-(4, 'Thomas', 'Tom@gmail.com', 'User@12345', 'Reviewer', '34DRWDVB', 'active');
+(3, 'Arya - PETRONAS', 'Arya@gmail.com', 'user@12345', 'Project Lead', 'B4XH9VDK', 'active'),
+(4, 'Thomas', 'Tom@gmail.com', 'User@12345', 'Reviewer', '34DRWDVB', 'active'),
+(5, 'CELCOM - Caitlyn', 'cait@gmail.com', 'User@12345', 'Project Lead', 'B4XH9VDK', 'active'),
+(6, 'vi', 'vi@gmail.com', 'User@12345', 'Project Lead', 'MP98JFTC', 'active'),
+(7, 'Ikma', 'ikma@gmail.com', 'User@12345', 'Project Lead', 'B4XH9VDK', 'active');
 
 --
 -- Indexes for dumped tables
@@ -157,6 +188,15 @@ ALTER TABLE `proposal`
   ADD PRIMARY KEY (`id`),
   ADD KEY `project_id` (`project_id`),
   ADD KEY `lead_id` (`lead_id`);
+
+--
+-- Indexes for table `proposals`
+--
+ALTER TABLE `proposals`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_room_code` (`room_code`),
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Indexes for table `proposal_attachments`
@@ -188,19 +228,25 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `project`
 --
 ALTER TABLE `project`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `proposal`
 --
 ALTER TABLE `proposal`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `proposals`
+--
+ALTER TABLE `proposals`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `proposal_attachments`
 --
 ALTER TABLE `proposal_attachments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `proposal_reviews`
@@ -212,7 +258,7 @@ ALTER TABLE `proposal_reviews`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Constraints for dumped tables
@@ -224,6 +270,12 @@ ALTER TABLE `users`
 ALTER TABLE `proposal`
   ADD CONSTRAINT `proposal_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`),
   ADD CONSTRAINT `proposal_ibfk_2` FOREIGN KEY (`lead_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `proposals`
+--
+ALTER TABLE `proposals`
+  ADD CONSTRAINT `proposals_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `proposal_attachments`
