@@ -35,10 +35,10 @@ $_SESSION['user'] = $user;
 
 switch ($user['role']) {
     case 'Project Lead':
-        header("Location: PLmain.html");
+        header("Location: PLmain.php");
         break;
     case 'Reviewer':
-        header("Location: ReviewerMain.html");
+        header("Location: ReviewerMain.php");
         break;
     case 'Executive Approver':
         header("Location: ApproverMain.html");
