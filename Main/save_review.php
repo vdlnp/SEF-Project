@@ -2,51 +2,66 @@
 session_start();
 include "db.php";
 
-$reviewer_id = $_SESSION['user_id'] ?? 1; // fallback for testing
+// Ensure logged-in user is a Reviewer
+if (!isset($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'Reviewer') {
+    die("Unauthorized");
+}
+
+$reviewer_id = (int)($_SESSION['user']['id'] ?? 0);
+$user_room = $_SESSION['user']['room_code'] ?? '';
 
 // Get POST data
-$proposal_id = $_POST['proposal_id'] ?? null;
-$comments    = $_POST['comments'] ?? '';
-$score       = $_POST['score'] ?? null;
+$proposal_id = isset($_POST['proposal_id']) ? (int)$_POST['proposal_id'] : 0;
+$comments    = trim($_POST['comments'] ?? '');
+$score       = isset($_POST['score']) ? (float)$_POST['score'] : null;
 
-if (!$proposal_id || $score === null) {
-    die("Proposal ID and score are required.");
+if ($proposal_id <= 0 || $comments === '' || $score === null) {
+    die("Proposal ID, comments, and score are required.");
 }
 
-// Check if this reviewer has already reviewed this proposal
-$check_query = "SELECT id FROM proposal_reviews WHERE proposal_id = ? AND reviewer_id = ?";
-$stmt = $conn->prepare($check_query);
-$stmt->bind_param("ii", $proposal_id, $reviewer_id);
-$stmt->execute();
-$stmt->store_result();
+// Verify proposal exists and belongs to same room
+$check_stmt = $conn->prepare("
+    SELECT room_code, status 
+    FROM proposals 
+    WHERE id = ?
+");
+$check_stmt->bind_param("i", $proposal_id);
+$check_stmt->execute();
+$check_stmt->bind_result($proposal_room, $proposal_status);
 
-if ($stmt->num_rows > 0) {
-    // Update existing review
-    $update_query = "UPDATE proposal_reviews 
-                     SET comments = ?, score = ?, status = 'reviewed' 
-                     WHERE proposal_id = ? AND reviewer_id = ?";
-    $update_stmt = $conn->prepare($update_query);
-    $update_stmt->bind_param("sdii", $comments, $score, $proposal_id, $reviewer_id);
-    if ($update_stmt->execute()) {
-        header("Location: ReviewerMain.php?msg=updated");
-        exit;
-    } else {
-        die("Failed to update review: " . $conn->error);
-    }
+if (!$check_stmt->fetch()) {
+    $check_stmt->close();
+    die("Proposal not found.");
+}
+$check_stmt->close();
+
+if ($proposal_room !== $user_room) {
+    die("You are not authorized to review this proposal.");
+}
+
+if ($proposal_status !== 'Approved') {
+    die("Proposal is not available for review.");
+}
+
+// Update proposal with review
+$update_stmt = $conn->prepare("
+    UPDATE proposals 
+    SET 
+        reviewer_feedback = ?, 
+        reviewer_score = ?, 
+        status = 'Reviewed',
+        reviewed_at = NOW()
+    WHERE id = ?
+");
+
+$update_stmt->bind_param("sdi", $comments, $score, $proposal_id);
+
+if ($update_stmt->execute()) {
+    header("Location: ReviewerMain.php?msg=review_saved");
+    exit;
 } else {
-    // Insert new review
-    $insert_query = "INSERT INTO proposal_reviews (proposal_id, reviewer_id, comments, score, status) 
-                     VALUES (?, ?, ?, ?, 'reviewed')";
-    $insert_stmt = $conn->prepare($insert_query);
-    $insert_stmt->bind_param("iisd", $proposal_id, $reviewer_id, $comments, $score);
-    if ($insert_stmt->execute()) {
-        header("Location: ReviewerMain.php?msg=added");
-        exit;
-    } else {
-        die("Failed to save review: " . $conn->error);
-    }
+    die("Failed to save review: " . $conn->error);
 }
 
-$stmt->close();
+$update_stmt->close();
 $conn->close();
-?>

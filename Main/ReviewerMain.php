@@ -2,25 +2,38 @@
 session_start();
 include "db.php";
 
-$reviewer_id = $_SESSION['user_id'] ?? 1; // fallback for testing
+// Ensure user is logged in and is a Reviewer
+if (!isset($_SESSION['user'])) {
+    header("Location: login.php");
+    exit;
+}
+$user = $_SESSION['user'];
 
-// Fetch proposals and any existing reviews by this reviewer
+if (($user['role'] ?? '') !== 'Reviewer') {
+    header("Location: login.php");
+    exit;
+}
+
+$reviewer_id = (int) ($user['id'] ?? 0);
+$room_code = mysqli_real_escape_string($conn, $user['room_code'] ?? '');
+
+// Fetch proposals for this reviewer's room (only EP-approved proposals)
 $query = "
     SELECT 
-        pr.id AS proposal_id,
-        pr.title AS proposal_title,
-        pr.description AS proposal_description,
-        pr.deadline AS proposal_deadline,
-        r.id AS review_id,
-        r.comments,
-        r.score,
-        r.status AS review_status
-    FROM proposal pr
-    LEFT JOIN proposal_reviews r
-        ON pr.id = r.proposal_id
-        AND r.reviewer_id = $reviewer_id
-    ORDER BY pr.id DESC
+        p.id AS proposal_id,
+        p.title AS proposal_title,
+        p.description AS proposal_description,
+        p.file_path AS proposal_file_path,
+        p.submitted_at AS proposal_submitted,
+        p.status AS proposal_status,
+        p.reviewer_feedback,
+        p.reviewer_score
+    FROM proposals p
+    WHERE p.room_code = '{$room_code}'
+      AND p.status IN ('Approved', 'Reviewed')
+    ORDER BY p.id DESC
 ";
+
 
 $result = mysqli_query($conn, $query);
 ?>
@@ -114,9 +127,11 @@ textarea, input {
 
 <div class="container">
 
+
 <?php while ($row = mysqli_fetch_assoc($result)) { 
-    $status = $row['review_status'] ?? 'Pending'; // Default to Pending
-    $status_text = ucfirst(strtolower($status)); // Capitalize first letter
+    $feedback = trim($row['reviewer_feedback'] ?? '');
+    $status = $feedback ? 'Reviewed' : ($row['proposal_status'] ?? 'Under Review');
+    $status_text = $status; 
 ?>
     <div class="proposal-card">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -128,16 +143,27 @@ textarea, input {
 
         <p><?= htmlspecialchars($row['proposal_description']) ?></p>
 
-        <?php if ($row['review_id']) { ?>
+        <?php if (!empty($row['proposal_file_path'])): ?>
+            <p style="margin-top:8px;">
+                <strong>Attachment:</strong>
+                <a href="uploads/proposals/<?= htmlspecialchars($row['proposal_file_path']) ?>" target="_blank" style="color:#1abc9c; margin-left:8px; text-decoration:none;">📎 Download File</a>
+            </p>
+        <?php endif; ?>
+
+        <?php if ($feedback) { 
+                $displayScore = $row['reviewer_score'] !== null ? htmlspecialchars(number_format((float)$row['reviewer_score'], 1)) : null;
+            ?>
             <div style="margin-top:15px;">
-                <strong>Score:</strong> <?= htmlspecialchars($row['score']) ?>/10
-                <p><?= htmlspecialchars($row['comments']) ?></p>
+                <?php if ($displayScore !== null): ?>
+                    <strong>Score:</strong> <?= $displayScore ?>/10
+                    <br>
+                <?php endif; ?>
+
+                <strong>Feedback:</strong>
+                <p><?= nl2br(htmlspecialchars($feedback)) ?></p>
+
                 <button class="btn btn-primary"
-                    onclick="openModal(
-                        <?= $row['proposal_id'] ?>,
-                        '<?= addslashes($row['comments']) ?>',
-                        '<?= $row['score'] ?>'
-                    )">
+                    onclick="openModal(<?= $row['proposal_id'] ?>, '<?= addslashes($feedback) ?>', '<?= $displayScore ?? '' ?>')">
                     Edit Review
                 </button>
             </div>
@@ -158,7 +184,10 @@ textarea, input {
         <h3>Review Proposal</h3>
         <form method="POST" action="save_review.php">
             <input type="hidden" name="proposal_id" id="proposal_id">
+            <label for="comments">Comments</label>
             <textarea name="comments" id="comments" required></textarea>
+
+            <label for="score">Score (0 - 10)</label>
             <input type="number" name="score" id="score" min="0" max="10" step="0.1" required>
 
             <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
