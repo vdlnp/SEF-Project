@@ -23,18 +23,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = $_POST['description'] ?? '';
         $fileName = '';
 
-        // Handle file upload
-        if (isset($_FILES['file']) && $_FILES['file']['error'] === 0) {
-            $uploadDir = 'uploads/proposals/';
-            if (!file_exists($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
-            
-            $fileName = time() . '_' . basename($_FILES['file']['name']);
-            $targetPath = $uploadDir . $fileName;
-            
-            if (!move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
-                echo 'Error uploading file';
+        // Handle file upload (robust checks and helpful error messages)
+        if (isset($_FILES['file'])) {
+            $fileError = $_FILES['file']['error'];
+            if ($fileError === UPLOAD_ERR_OK) {
+                $uploadDir = 'uploads/proposals/';
+                if (!file_exists($uploadDir)) {
+                    if (!mkdir($uploadDir, 0777, true) && !is_dir($uploadDir)) {
+                        echo 'Failed to create upload directory';
+                        exit;
+                    }
+                }
+
+                $originalName = basename($_FILES['file']['name']);
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+                $allowed = ['pdf','doc','docx','txt','ppt','pptx'];
+                if (!in_array(strtolower($extension), $allowed)) {
+                    echo 'Invalid file type. Allowed: ' . implode(',', $allowed);
+                    exit;
+                }
+
+                // Sanitize filename and prepend timestamp
+                $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $originalName);
+                $targetPath = $uploadDir . $fileName;
+
+                if (!move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
+                    echo 'Error moving uploaded file';
+                    exit;
+                }
+            } else {
+                $errMap = [
+                    UPLOAD_ERR_INI_SIZE => 'File too large (server limit)',
+                    UPLOAD_ERR_FORM_SIZE => 'File too large (form limit)',
+                    UPLOAD_ERR_PARTIAL => 'Partial upload',
+                    UPLOAD_ERR_NO_FILE => 'No file uploaded',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                    UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                    UPLOAD_ERR_EXTENSION => 'Upload stopped by extension'
+                ];
+                $msg = $errMap[$fileError] ?? 'Unknown upload error';
+                echo 'Upload error: ' . $msg;
                 exit;
             }
         }
@@ -380,7 +408,7 @@ footer {
             <textarea id="proposalDesc" rows="4" placeholder="Proposal Description" required></textarea>
             <div class="file-input">
                 <label>Attach File:</label><br>
-                <input type="file" id="proposalFile">
+                <input type="file" id="proposalFile" name="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx">
             </div>
             <button type="submit" class="submit-btn">Submit Proposal</button>
         </form>
