@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "db.php"; // $conn defined here
+include "db.php";
 
 // Check if user is logged in and is a Project Lead
 if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'Project Lead') {
@@ -23,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = $_POST['description'] ?? '';
         $fileName = '';
 
-        // Handle file upload (robust checks and helpful error messages)
         if (isset($_FILES['file'])) {
             $fileError = $_FILES['file']['error'];
             if ($fileError === UPLOAD_ERR_OK) {
@@ -43,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
 
-                // Sanitize filename and prepend timestamp
                 $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $originalName);
                 $targetPath = $uploadDir . $fileName;
 
@@ -51,19 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     echo 'Error moving uploaded file';
                     exit;
                 }
-            } else {
-                $errMap = [
-                    UPLOAD_ERR_INI_SIZE => 'File too large (server limit)',
-                    UPLOAD_ERR_FORM_SIZE => 'File too large (form limit)',
-                    UPLOAD_ERR_PARTIAL => 'Partial upload',
-                    UPLOAD_ERR_NO_FILE => 'No file uploaded',
-                    UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
-                    UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
-                    UPLOAD_ERR_EXTENSION => 'Upload stopped by extension'
-                ];
-                $msg = $errMap[$fileError] ?? 'Unknown upload error';
-                echo 'Upload error: ' . $msg;
-                exit;
             }
         }
 
@@ -77,9 +62,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         exit;
     }
+
+    // Resubmit Rejected Proposal
+    if ($action === 'resubmitProposal') {
+        $proposalId = (int)($_POST['proposalId'] ?? 0);
+        $title = $_POST['title'] ?? '';
+        $description = $_POST['description'] ?? '';
+        $fileName = '';
+
+        // Verify the proposal belongs to the user and is rejected
+        $check = $conn->prepare("SELECT file_path, status FROM proposals WHERE id = ? AND user_id = ?");
+        $check->bind_param("ii", $proposalId, $userId);
+        $check->execute();
+        $check->bind_result($oldFile, $currentStatus);
+        
+        if (!$check->fetch()) {
+            echo 'Proposal not found or unauthorized';
+            exit;
+        }
+        $check->close();
+
+        if ($currentStatus !== 'Rejected') {
+            echo 'Only rejected proposals can be resubmitted';
+            exit;
+        }
+
+        // Handle file upload
+        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'uploads/proposals/';
+            $originalName = basename($_FILES['file']['name']);
+            $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+            $allowed = ['pdf','doc','docx','txt','ppt','pptx'];
+            
+            if (in_array(strtolower($extension), $allowed)) {
+                $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $originalName);
+                $targetPath = $uploadDir . $fileName;
+                move_uploaded_file($_FILES['file']['tmp_name'], $targetPath);
+            } else {
+                $fileName = $oldFile;
+            }
+        } else {
+            $fileName = $oldFile;
+        }
+
+        // Update the proposal
+        $stmt = $conn->prepare("
+            UPDATE proposals 
+            SET title = ?, 
+                description = ?, 
+                file_path = ?, 
+                status = 'Under Review',
+                reviewer_feedback = NULL,
+                reviewer_score = NULL,
+                reviewed_at = NULL,
+                submitted_at = NOW()
+            WHERE id = ? AND user_id = ?
+        ");
+        $stmt->bind_param("sssii", $title, $description, $fileName, $proposalId, $userId);
+
+        if ($stmt->execute()) {
+            echo 'success';
+        } else {
+            echo 'Error: ' . $conn->error;
+        }
+        exit;
+    }
 }
 
-// Fetch project info for the user's room
+// Fetch project info
 $projectInfo = null;
 if ($userRoom) {
     $stmt = $conn->prepare("SELECT * FROM project WHERE room_code = ?");
@@ -89,7 +139,7 @@ if ($userRoom) {
     $projectInfo = $result->fetch_assoc();
 }
 
-// Fetch user's proposals
+// Fetch proposals
 $proposals = [];
 $stmt = $conn->prepare("SELECT * FROM proposals WHERE user_id = ? ORDER BY submitted_at DESC");
 $stmt->bind_param("i", $userId);
@@ -97,14 +147,22 @@ $stmt->execute();
 $result = $stmt->get_result();
 $proposals = $result->fetch_all(MYSQLI_ASSOC);
 
-// Count notifications (proposals with feedback/status changes)
+// Count notifications
 $notificationCount = 0;
-$stmt = $conn->prepare("SELECT COUNT(*) as count FROM proposals WHERE user_id = ? AND (status = 'Approved' OR status = 'Rejected')");
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM proposals WHERE user_id = ? AND reviewer_feedback IS NOT NULL AND reviewer_feedback != ''");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 $notificationData = $result->fetch_assoc();
 $notificationCount = $notificationData['count'];
+
+// Fetch notifications
+$notifications = [];
+$stmt = $conn->prepare("SELECT id, title, reviewer_feedback, reviewer_score, submitted_at FROM proposals WHERE user_id = ? AND reviewer_feedback IS NOT NULL AND reviewer_feedback != '' ORDER BY submitted_at DESC LIMIT 10");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+$notifications = $result->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -147,6 +205,7 @@ header h1 {
     font-size: 22px;
     color: white;
     text-decoration: none;
+    cursor: pointer;
 }
 
 .badge {
@@ -158,6 +217,69 @@ header h1 {
     font-size: 11px;
     padding: 3px 6px;
     border-radius: 50%;
+    font-weight: bold;
+}
+
+.notification-dropdown {
+    display: none;
+    position: absolute;
+    top: 50px;
+    right: 100px;
+    background: #2c2a38;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+    width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.notification-dropdown.show {
+    display: block;
+}
+
+.notification-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #1f1d29;
+    font-weight: 600;
+    color: #1abc9c;
+}
+
+.notification-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #1f1d29;
+    transition: background 0.3s;
+}
+
+.notification-item:hover {
+    background: #1f1d29;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-title {
+    font-weight: 600;
+    color: #1abc9c;
+    margin-bottom: 5px;
+}
+
+.notification-message {
+    font-size: 13px;
+    color: #cfcfcf;
+    margin-bottom: 5px;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: #888;
+}
+
+.no-notifications {
+    padding: 30px 20px;
+    text-align: center;
+    color: #888;
 }
 
 .logout {
@@ -231,7 +353,6 @@ header h1 {
     box-shadow: 0 12px 30px rgba(0,0,0,0.8), 0 0 20px rgba(26,188,156,0.5);
 }
 
-/* MODAL */
 .modal {
     display: none;
     position: fixed;
@@ -272,16 +393,6 @@ header h1 {
     margin-bottom: 25px;
 }
 
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 6px;
-    color: #cfcfcf;
-}
-
 input, textarea {
     width: 100%;
     padding: 12px;
@@ -290,6 +401,7 @@ input, textarea {
     border: none;
     background: #1f1d29;
     color: #e6e6e6;
+    box-sizing: border-box;
 }
 
 input[type="file"] {
@@ -304,6 +416,11 @@ input[type="file"] {
     color: white;
     border-radius: 10px;
     cursor: pointer;
+    font-weight: 600;
+}
+
+.submit-btn:hover {
+    background: #16a085;
 }
 
 .proposal {
@@ -326,7 +443,7 @@ input[type="file"] {
     font-size: 12px;
 }
 
-.review, .under-review { background: #fbbf24; color: #78350f; }
+.under-review { background: #fbbf24; color: #78350f; }
 .approved { background: #34d399; color: #064e3b; }
 .rejected { background: #f87171; color: #7f1d1d; }
 
@@ -339,6 +456,16 @@ input[type="file"] {
     cursor: pointer;
 }
 
+.btn-secondary {
+    background: #34495e;
+    border: none;
+    padding: 12px 20px;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
 footer {
     background: #161421;
     color: #bbb;
@@ -346,12 +473,6 @@ footer {
     padding: 14px;
     font-size: 14px;
     border-top: 1px solid #333333;
-}
-
-.no-proposals {
-    text-align: center;
-    padding: 40px;
-    color: #888;
 }
 </style>
 </head>
@@ -362,12 +483,39 @@ footer {
     <h1>Project Lead Dashboard</h1>
 
     <div class="nav-right">
-        <a href="#" class="notification" title="Notifications">
-            🔔
-            <?php if ($notificationCount > 0): ?>
-            <span class="badge"><?= $notificationCount ?></span>
-            <?php endif; ?>
-        </a>
+        <div style="position: relative;">
+            <a class="notification" onclick="toggleNotifications()" title="Notifications">
+                🔔
+                <?php if ($notificationCount > 0): ?>
+                <span class="badge"><?= $notificationCount ?></span>
+                <?php endif; ?>
+            </a>
+            
+            <div id="notificationDropdown" class="notification-dropdown">
+                <div class="notification-header">
+                    Notifications (<?= $notificationCount ?>)
+                </div>
+                
+                <?php if (count($notifications) > 0): ?>
+                    <?php foreach ($notifications as $notif): ?>
+                        <div class="notification-item">
+                            <div class="notification-title"><?= htmlspecialchars($notif['title']) ?></div>
+                            <div class="notification-message">
+                                Your proposal was reviewed! Score: <?= $notif['reviewer_score'] ?? 'N/A' ?>/10
+                            </div>
+                            <div class="notification-time">
+                                Reviewed at <?= date('M d, Y g:i A', strtotime($notif['submitted_at'])) ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="no-notifications">
+                        No new notifications
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
         <a href="index.php" class="logout">Logout</a>
     </div>
 </header>
@@ -432,7 +580,7 @@ footer {
             </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <div class="no-proposals">
+            <div style="text-align:center;padding:40px;color:#888;">
                 <p>No proposals submitted yet</p>
             </div>
         <?php endif; ?>
@@ -457,21 +605,71 @@ footer {
                 <span id="detailDate"></span>
             </div>
             
-            <div style="margin-bottom: 15px;">
-                <strong style="color: #1abc9c;">Description:</strong>
-                <p id="detailDescription" style="margin-top: 8px; line-height: 1.6;"></p>
+            <!-- View Mode -->
+            <div id="viewMode">
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #1abc9c;">Description:</strong>
+                    <p id="detailDescription" style="margin-top: 8px; line-height: 1.6;"></p>
+                </div>
+                
+                <div id="detailFileSection" style="margin-bottom: 15px; display: none;">
+                    <strong style="color: #1abc9c;">Attached File:</strong>
+                    <a id="detailFileLink" href="#" target="_blank" style="color: #1abc9c; margin-left: 10px;">
+                        📎 Download File
+                    </a>
+                </div>
+
+                <div id="detailScoreSection" style="margin-bottom: 15px; display: none;">
+                    <strong style="color: #1abc9c;">Reviewer Score:</strong>
+                    <span id="detailScore" style="margin-left: 10px; font-weight: bold;"></span>
+                </div>
+                
+                <div id="detailFeedbackSection" style="margin-top: 20px; display: none;">
+                    <strong style="color: #1abc9c;">Reviewer Feedback:</strong>
+                    <p id="detailFeedback" style="margin-top: 8px; padding: 15px; background: #2c2a38; border-radius: 8px; line-height: 1.6;"></p>
+                </div>
+
+                <div id="editButtonSection" style="margin-top: 20px; display: none;">
+                    <button class="submit-btn" onclick="enableEditMode()">
+                        ✏️ Edit & Resubmit Proposal
+                    </button>
+                </div>
             </div>
-            
-            <div id="detailFileSection" style="margin-bottom: 15px; display: none;">
-                <strong style="color: #1abc9c;">Attached File:</strong>
-                <a id="detailFileLink" href="#" target="_blank" style="color: #1abc9c; margin-left: 10px;">
-                    📎 Download File
-                </a>
-            </div>
-            
-            <div id="detailFeedbackSection" style="margin-top: 20px; display: none;">
-                <strong style="color: #1abc9c;">Reviewer Feedback:</strong>
-                <p id="detailFeedback" style="margin-top: 8px; padding: 15px; background: #2c2a38; border-radius: 8px; line-height: 1.6;"></p>
+
+            <!-- Edit Mode -->
+            <div id="editMode" style="display: none;">
+                <form id="resubmitForm" enctype="multipart/form-data">
+                    <input type="hidden" id="resubmitProposalId">
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="color: #1abc9c; display: block; margin-bottom: 8px;">Title:</label>
+                        <input type="text" id="editTitle" required style="width: 100%; padding: 10px; background: #2c2a38; border: 1px solid #555; color: white; border-radius: 6px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="color: #1abc9c; display: block; margin-bottom: 8px;">Description:</label>
+                        <textarea id="editDescription" rows="5" required style="width: 100%; padding: 10px; background: #2c2a38; border: 1px solid #555; color: white; border-radius: 6px;"></textarea>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="color: #1abc9c; display: block; margin-bottom: 8px;">Attachment:</label>
+                        <div id="currentFileInfo" style="margin-bottom: 10px; padding: 10px; background: #2c2a38; border-radius: 6px;">
+                            <span style="color: #cfcfcf;">Current file: </span>
+                            <span id="currentFileName" style="color: #1abc9c;"></span>
+                        </div>
+                        <input type="file" id="editFile" name="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx" style="width: 100%; padding: 8px; background: #2c2a38; border: 1px solid #555; color: white; border-radius: 6px;">
+                        <small style="color: #888; display: block; margin-top: 5px;">Leave empty to keep current file, or upload a new one to replace it</small>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="btn-secondary" onclick="cancelEditMode()" style="flex: 1;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="submit-btn" style="flex: 1;">
+                            Resubmit Proposal
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -482,6 +680,8 @@ footer {
 </footer>
 
 <script>
+let currentProposal = null;
+
 function openModal(id) {
     document.getElementById(id).style.display = 'block';
 }
@@ -490,14 +690,26 @@ function closeModal(id) {
     document.getElementById(id).style.display = 'none';
 }
 
-// Close modal when clicking outside
+function toggleNotifications() {
+    const dropdown = document.getElementById('notificationDropdown');
+    dropdown.classList.toggle('show');
+}
+
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('notificationDropdown');
+    const bell = document.querySelector('.notification');
+    
+    if (!bell.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+
 window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
         event.target.style.display = 'none';
     }
 }
 
-// Handle proposal submission
 document.getElementById('proposalForm').onsubmit = function(e) {
     e.preventDefault();
     
@@ -523,43 +735,105 @@ document.getElementById('proposalForm').onsubmit = function(e) {
         } else {
             alert('Error: ' + res);
         }
+    });
+};
+
+document.getElementById('resubmitForm').onsubmit = function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('action', 'resubmitProposal');
+    formData.append('proposalId', document.getElementById('resubmitProposalId').value);
+    formData.append('title', document.getElementById('editTitle').value);
+    formData.append('description', document.getElementById('editDescription').value);
+    
+    const fileInput = document.getElementById('editFile');
+    if (fileInput.files.length > 0) {
+        formData.append('file', fileInput.files[0]);
+    }
+    
+    fetch('PLmain.php', {
+        method: 'POST',
+        body: formData
     })
-    .catch(err => {
-        alert('Error submitting proposal');
-        console.error(err);
+    .then(res => res.text())
+    .then(res => {
+        if (res === 'success') {
+            alert('Proposal resubmitted successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + res);
+        }
     });
 };
 
 function viewProposal(proposal) {
-    // Populate the details modal
+    currentProposal = proposal;
+    
+    document.getElementById('viewMode').style.display = 'block';
+    document.getElementById('editMode').style.display = 'none';
+    
     document.getElementById('detailTitle').textContent = proposal.title;
     document.getElementById('detailDescription').textContent = proposal.description;
     document.getElementById('detailDate').textContent = formatDate(proposal.submitted_at);
-    
-    // Set status
+
     const statusElement = document.getElementById('detailStatus');
     statusElement.textContent = proposal.status;
     statusElement.className = 'status ' + proposal.status.toLowerCase().replace(' ', '-');
-    
-    // Handle file attachment
+
     if (proposal.file_path) {
         document.getElementById('detailFileSection').style.display = 'block';
         document.getElementById('detailFileLink').href = 'uploads/proposals/' + proposal.file_path;
     } else {
         document.getElementById('detailFileSection').style.display = 'none';
     }
-    
-    // Handle reviewer feedback
+
     if (proposal.reviewer_feedback) {
         document.getElementById('detailFeedbackSection').style.display = 'block';
         document.getElementById('detailFeedback').textContent = proposal.reviewer_feedback;
     } else {
         document.getElementById('detailFeedbackSection').style.display = 'none';
     }
-    
-    // Close the proposals list modal and open details modal
+
+    if (proposal.reviewer_score !== undefined && proposal.reviewer_score !== null) {
+        document.getElementById('detailScoreSection').style.display = 'block';
+        document.getElementById('detailScore').textContent = proposal.reviewer_score + '/10';
+    } else {
+        document.getElementById('detailScoreSection').style.display = 'none';
+    }
+
+    if (proposal.status === 'Rejected') {
+        document.getElementById('editButtonSection').style.display = 'block';
+    } else {
+        document.getElementById('editButtonSection').style.display = 'none';
+    }
+
     closeModal('myProposalsModal');
     openModal('proposalDetailsModal');
+}
+
+function enableEditMode() {
+    document.getElementById('viewMode').style.display = 'none';
+    document.getElementById('editMode').style.display = 'block';
+    
+    document.getElementById('resubmitProposalId').value = currentProposal.id;
+    document.getElementById('editTitle').value = currentProposal.title;
+    document.getElementById('editDescription').value = currentProposal.description;
+    
+    if (currentProposal.file_path) {
+        document.getElementById('currentFileInfo').style.display = 'block';
+        document.getElementById('currentFileName').textContent = currentProposal.file_path;
+    } else {
+        document.getElementById('currentFileInfo').style.display = 'none';
+    }
+    
+    document.getElementById('detailTitle').textContent = 'Edit & Resubmit: ' + currentProposal.title;
+}
+
+function cancelEditMode() {
+    document.getElementById('viewMode').style.display = 'block';
+    document.getElementById('editMode').style.display = 'none';
+    document.getElementById('detailTitle').textContent = currentProposal.title;
 }
 
 function formatDate(dateString) {

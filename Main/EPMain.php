@@ -1,63 +1,105 @@
 <?php
 session_start();
-include "db.php"; // $conn defined here
+include "db.php";
 
-// --- 1. SET THE LOGGED-IN ROOM ---
-// Use the logged-in user's room and ensure the user is an Executive Approver
+/* =========================
+   1. AUTH & ROOM CHECK
+========================= */
 if (!isset($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'Executive Approver') {
     header("Location: login.php");
     exit;
 }
+
 $logged_in_room = $_SESSION['user']['room_code'] ?? '';
 if (empty($logged_in_room)) {
-    die('No room assigned to your account.');
+    die("No room assigned to your account.");
 }
 
-
-// --- 2. HANDLE APPROVAL / REJECTION ACTIONS ---
+/* =========================
+   2. HANDLE APPROVE / DECLINE
+========================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
-    $proposalId = isset($_POST['proposalId']) ? (int)$_POST['proposalId'] : 0;
+    $action = $_POST['action'] ?? '';
+    $proposalId = (int)($_POST['proposalId'] ?? 0);
+
+    // Debug logging
+    error_log("Action received: " . $action);
+    error_log("Proposal ID: " . $proposalId);
+
+    if (!in_array($action, ['approve', 'decline'])) {
+        echo "Invalid action: " . $action;
+        exit;
+    }
 
     $status = ($action === 'approve') ? 'Approved' : 'Rejected';
+    error_log("Status to set: " . $status);
 
-    // Verify proposal exists and belongs to this room
-    $check_stmt = $conn->prepare("SELECT room_code FROM proposals WHERE id = ?");
-    $check_stmt->bind_param("i", $proposalId);
-    $check_stmt->execute();
-    $check_stmt->bind_result($proposal_room);
-    if (!$check_stmt->fetch()) {
-        $check_stmt->close();
+    // Verify proposal belongs to same room
+    $check = $conn->prepare("SELECT room_code FROM proposals WHERE id = ?");
+    $check->bind_param("i", $proposalId);
+    $check->execute();
+    $check->bind_result($proposal_room);
+
+    if (!$check->fetch()) {
         echo "Proposal not found";
         exit;
     }
-    $check_stmt->close();
+    $check->close();
 
     if ($proposal_room !== $logged_in_room) {
         echo "Unauthorized";
         exit;
     }
 
-    $stmt = $conn->prepare("UPDATE proposals SET status = ?, reviewed_at = NOW() WHERE id = ?");
+    $stmt = $conn->prepare("
+        UPDATE proposals 
+        SET status = ?, reviewed_at = NOW() 
+        WHERE id = ?
+    ");
     $stmt->bind_param("si", $status, $proposalId);
+
+    error_log("Executing UPDATE with status='$status' for id=$proposalId");
+    
     if ($stmt->execute()) {
+        error_log("UPDATE successful. Rows affected: " . $stmt->affected_rows);
         echo "success";
     } else {
-        echo "Error: " . $conn->error;
+        error_log("UPDATE failed: " . $stmt->error);
+        echo "Error: " . $stmt->error;
     }
     $stmt->close();
+    
+    // Verify what was actually saved
+    $verify = $conn->prepare("SELECT status FROM proposals WHERE id = ?");
+    $verify->bind_param("i", $proposalId);
+    $verify->execute();
+    $verify->bind_result($saved_status);
+    $verify->fetch();
+    error_log("Status after UPDATE: " . ($saved_status ?? 'NULL'));
+    $verify->close();
+    
     exit;
 }
 
-// --- 3. FETCH PROPOSALS ONLY FOR THIS ROOM ---
-$query = "SELECT p.*, u.name as sender_name 
-          FROM proposals p 
-          JOIN users u ON p.user_id = u.id 
-          WHERE p.room_code = '$logged_in_room'
-          ORDER BY p.submitted_at DESC";
-
-$result = $conn->query($query);
+/* =========================
+   3. FETCH PROPOSALS
+========================= */
+$query = "
+    SELECT p.*, u.name AS sender_name
+    FROM proposals p
+    JOIN users u ON p.user_id = u.id
+    WHERE p.room_code = ?
+    ORDER BY p.submitted_at DESC
+";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("s", $logged_in_room);
+$stmt->execute();
+$result = $stmt->get_result();
 $proposals = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Pending count
+$pendingCount = count(array_filter($proposals, fn($p) => $p['status'] === 'Under Review'));
 ?>
 
 <!DOCTYPE html>
@@ -65,87 +107,236 @@ $proposals = $result->fetch_all(MYSQLI_ASSOC);
 <head>
 <meta charset="UTF-8">
 <title>Executive Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
 <style>
-/* Exact styles from original Admin/EP HTML */
-body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:#1f1d29; color:#e6e6e6;}
-header {background:#1abc9c; color:white; padding:16px 32px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 8px rgba(0,0,0,0.3);}
-header h2 {margin:0; font-size:22px;}
-.logout {text-decoration:none;color:white;font-weight:600;border:1px solid rgba(255,255,255,0.6);padding:6px 16px;border-radius:20px;transition:all 0.3s ease;}
-.logout:hover {background:#2e1b36;box-shadow:0 0 15px rgba(26,188,156,0.7);transform:scale(1.05);}
-.container {min-height:calc(100vh - 140px); display:flex; flex-direction:column; align-items:center; padding:40px 20px;}
+* { margin:0; padding:0; box-sizing:border-box; }
 
-/* Card Style for Proposals */
-.proposal-list { width: 100%; max-width: 900px; }
-.card {background:#2c2a38; padding:30px; border-radius:14px; box-shadow:0 6px 15px rgba(0,0,0,0.5); margin-bottom: 25px; border-left: 5px solid #1abc9c;}
-.card h4 { color:#1abc9c; margin-top:0; font-size: 20px; }
+body {
+    font-family: 'Poppins', sans-serif;
+    background:#1f1d29;
+    color:#e6e6e6;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+}
 
-/* Status Badges */
-.status-badge { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; text-transform:uppercase; float: right; }
-.status-Under-Review { background: #f39c12; color: white; }
-.status-Approved { background: #2ecc71; color: white; }
-.status-Rejected { background: #e74c3c; color: white; }
+/* Header */
+header {
+    background:#1abc9c;
+    padding:16px 32px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 4px 8px rgba(0,0,0,0.3);
+}
+header h1 { font-size:22px; }
 
-/* Form Elements within Cards */
-textarea {width:100%; padding:10px 12px; background:#1f1d29; border:1px solid #444; color:white; border-radius:6px; font-size:14px; margin: 15px 0; box-sizing: border-box;}
-.btn {background:#1abc9c; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold; margin-right:10px;}
-.btn-danger {background:#e74c3c;}
-.btn:hover {opacity:0.85;}
-.room-code {background:#1abc9c; padding:4px 10px; border-radius:4px; font-family:monospace; font-size: 14px;}
+.logout {
+    text-decoration:none;
+    color:white;
+    font-weight:600;
+    border:1px solid rgba(255,255,255,0.6);
+    padding:6px 16px;
+    border-radius:20px;
+    transition:0.3s;
+}
+.logout:hover {
+    background:#2e1b36;
+    box-shadow:0 0 15px rgba(26,188,156,0.7);
+    transform:scale(1.05);
+}
 
-/* Confirmation Modal */
-.confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; }
-.confirm-modal-content { background: #2c2a38; padding: 20px; width: 420px; margin: 12% auto; border-radius: 10px; }
-.btn-secondary { background: #34495e; color: white; border: none; padding:10px 20px; border-radius:6px; cursor:pointer; }
+/* Container */
+.container {
+    max-width:1000px;
+    width:95%;
+    margin:30px auto;
+    flex:1;
+}
 
-footer {background:#161421; text-align:center; padding:12px; margin-top: auto;}
+.top-info {
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.pending-count {
+    background:#fbbf24;
+    color:#78350f;
+    padding:6px 16px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:600;
+}
+
+.room-code {
+    background:#1abc9c;
+    color:white;
+    padding:6px 16px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:600;
+}
+
+/* Cards */
+.submissions-list {
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.submission-card {
+    background:#2c2a38;
+    padding:24px;
+    border-radius:14px;
+    box-shadow:0 6px 15px rgba(0,0,0,0.4);
+    transition:0.3s;
+}
+
+.submission-card:hover {
+    transform:translateY(-4px) scale(1.02);
+    background:linear-gradient(135deg,#1abc9c,#2c2a38);
+}
+
+.submission-title {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+}
+
+.submission-title h3 { font-size:18px; font-weight:500; }
+
+.status-badge {
+    padding:4px 12px;
+    border-radius:20px;
+    font-size:12px;
+    text-transform:uppercase;
+    font-weight:500;
+}
+.status-under-review { background:#fbbf24; color:#78350f; }
+.status-approved { background:#34d399; color:#064e3b; }
+.status-declined { background:#f87171; color:#7f1d1d; }
+.status-rejected { background:#f87171; color:#7f1d1d; }
+
+.submission-meta {
+    font-size:13px;
+    color:#cfcfcf;
+    margin-bottom:12px;
+}
+
+.submission-description {
+    font-size:14px;
+    color:#b0b8c4;
+    margin-bottom:15px;
+    line-height:1.5;
+}
+
+/* Attachments */
+.attachments h4 { font-size:14px; margin-bottom:6px; }
+.attachments a {
+    font-size:13px;
+    color:#1abc9c;
+    text-decoration:none;
+}
+.attachments a:hover { text-decoration:underline; }
+
+/* Actions */
+.submission-actions {
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+}
+
+.action-btn {
+    flex:1;
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    transition:0.3s;
+    color:white;
+}
+
+.approve-btn { background:#10b981; }
+.reject-btn { background:#ef4444; }
+
+.processed { opacity:0.6; }
+.processed .submission-actions {
+    pointer-events:none;
+    opacity:0.5;
+}
+
+/* Footer */
+footer {
+    background:#161421;
+    text-align:center;
+    padding:14px;
+    color:#bbb;
+    font-size:14px;
+}
 </style>
 </head>
+
 <body>
 
 <header>
-    <h2>Executive Dashboard</h2>
+    <h1>Executive Approver Dashboard</h1>
     <a href="index.php" class="logout">Logout</a>
 </header>
 
 <div class="container">
-    <div class="proposal-list">
-        <h3 style="text-align:center; margin-bottom: 30px;">Proposals for Room: <span class="room-code"><?= htmlspecialchars($logged_in_room) ?></span></h3>
 
-        <?php if(empty($proposals)): ?>
-            <div class="card" style="text-align:center;">No proposals submitted for this room yet.</div>
+    <div class="top-info">
+        <span class="pending-count"><?= $pendingCount ?> Pending</span>
+        <span class="room-code">Room: <?= htmlspecialchars($logged_in_room) ?></span>
+    </div>
+
+    <div class="submissions-list">
+        <?php if (empty($proposals)): ?>
+            <div class="submission-card">No proposals submitted.</div>
         <?php else: ?>
-            <?php foreach($proposals as $p): ?>
-                <div class="card">
-                    <span class="status-badge status-<?= str_replace(' ', '-', $p['status']) ?>">
-                        <?= $p['status'] ?>
-                    </span>
-                    <h4><?= htmlspecialchars($p['title']) ?></h4>
-                    <p><strong>Submitted by:</strong> <?= htmlspecialchars($p['sender_name']) ?></p>
-                    <p style="color: #bbb;"><?= nl2br(htmlspecialchars($p['description'])) ?></p>
-
-                    <?php if (!empty($p['file_path'])): ?>
-                        <p style="margin-top:8px;"><strong>Attachment:</strong>
-                            <a href="uploads/proposals/<?= htmlspecialchars($p['file_path']) ?>" target="_blank" style="color:#1abc9c; margin-left:8px; text-decoration:none;">📎 Download</a>
-                        </p>
-                    <?php endif; ?>
-
-                    <!-- Reviewer feedback (visible to EP) -->
-                    <div style="background: #1f1d29; padding: 10px; border-radius: 6px; margin-top: 10px;">
-                        <strong>Reviewer Feedback:</strong>
-                        <?php if (!empty($p['reviewer_feedback'])): ?>
-                            <div style="margin-top:8px; color: #ddd;"><?= nl2br(htmlspecialchars($p['reviewer_feedback'])) ?></div>
-                            <?php if (!empty($p['reviewed_at'])): ?>
-                                <div style="margin-top:8px; font-size:12px; color:#bbb;">Reviewed: <?= date('M d, Y H:i', strtotime($p['reviewed_at'])) ?></div>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <span style="color:#bbb; margin-left:8px;">No feedback provided.</span>
-                        <?php endif; ?>
+            <?php foreach ($proposals as $p): ?>
+                <div class="submission-card <?= $p['status'] !== 'Under Review' ? 'processed' : '' ?>">
+                    <div class="submission-title">
+                        <h3><?= htmlspecialchars($p['title']) ?></h3>
+                        <span class="status-badge status-<?= strtolower(str_replace(' ','-',$p['status'])) ?>">
+                            <?= $p['status'] ?>
+                        </span>
                     </div>
 
+                    <p class="submission-meta">
+                        Submitted by <?= htmlspecialchars($p['sender_name']) ?>
+                        • <?= date('M d, Y', strtotime($p['submitted_at'])) ?>
+                    </p>
+
+                    <p class="submission-description">
+                        <?= nl2br(htmlspecialchars($p['description'])) ?>
+                    </p>
+
+                    <?php if (!empty($p['file_path'])): ?>
+                        <div class="attachments">
+                            <h4>Attachment:</h4>
+                            <a href="uploads/proposals/<?= htmlspecialchars($p['file_path']) ?>" target="_blank">
+                                📎 <?= htmlspecialchars($p['file_path']) ?>
+                            </a>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($p['status'] === 'Under Review'): ?>
-                        <div style="margin-top:12px;">
-                            <button class="btn" onclick="openConfirmModal(<?= $p['id'] ?>, 'approve')">Approve</button>
-                            <button class="btn btn-danger" onclick="openConfirmModal(<?= $p['id'] ?>, 'reject')">Reject</button>
+                        <div class="submission-actions">
+                            <button class="action-btn approve-btn"
+                                onclick="handleAction(<?= $p['id'] ?>,'approve')">
+                                Approve
+                            </button>
+                            <button class="action-btn reject-btn"
+                                onclick="handleAction(<?= $p['id'] ?>,'decline')">
+                                Decline
+                            </button>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -154,65 +345,30 @@ footer {background:#161421; text-align:center; padding:12px; margin-top: auto;}
     </div>
 </div>
 
-<!-- Confirmation Modal -->
-<div id="confirmModal" class="confirm-modal" style="display:none;">
-    <div class="confirm-modal-content">
-        <h3 id="confirmTitle">Confirm Action</h3>
-        <p id="confirmMessage">Are you sure?</p>
-        <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
-            <button class="btn-secondary" onclick="closeConfirmModal()">Cancel</button>
-            <button class="btn btn-primary" id="confirmBtn" onclick="confirmAction()">Confirm</button>
-        </div>
-    </div>
-</div>
-
 <footer>
 Project Bidding System | Executive Module
 </footer>
 
 <script>
-let _confirmProposalId = null;
-let _confirmAction = null;
+function handleAction(id, action) {
+    if (!confirm(`Are you sure you want to ${action} this proposal?`)) return;
 
-function openConfirmModal(id, action) {
-    _confirmProposalId = id;
-    _confirmAction = action;
-    const title = action === 'approve' ? 'Confirm Approval' : 'Confirm Rejection';
-    const msg = action === 'approve' ? 'Are you sure you want to approve this proposal?' : 'Are you sure you want to reject this proposal? This cannot be undone.';
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmMessage').textContent = msg;
-    document.getElementById('confirmBtn').textContent = action === 'approve' ? 'Approve' : 'Reject';
-    document.getElementById('confirmModal').style.display = 'block';
-}
+    const fd = new FormData();
+    fd.append('proposalId', id);
+    fd.append('action', action);
 
-function closeConfirmModal() {
-    document.getElementById('confirmModal').style.display = 'none';
-    _confirmProposalId = null;
-    _confirmAction = null;
-}
-
-function confirmAction() {
-    if (!_confirmProposalId || !_confirmAction) return;
-    const formData = new FormData();
-    formData.append('action', _confirmAction);
-    formData.append('proposalId', _confirmProposalId);
-
-    fetch('EPMain.php', { method: 'POST', body: formData })
-    .then(res => res.text())
-    .then(res => {
-        if (res === 'success') {
-            alert('Proposal ' + (_confirmAction === 'approve' ? 'Approved' : 'Rejected'));
-            location.reload();
-        } else {
-            alert(res);
-            closeConfirmModal();
-        }
-    })
-    .catch(err => {
-        alert('Error: ' + err);
-        closeConfirmModal();
-    });
+    fetch('EPMain.php', { method:'POST', body:fd })
+        .then(r => r.text())
+        .then(r => {
+            if (r === 'success') {
+                location.reload();
+            } else {
+                alert('Response: ' + r);
+            }
+        })
+        .catch(err => alert('Error: ' + err));
 }
 </script>
+
 </body>
 </html>

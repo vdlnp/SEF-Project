@@ -30,7 +30,7 @@ $query = "
         p.reviewer_score
     FROM proposals p
     WHERE p.room_code = '{$room_code}'
-      AND p.status IN ('Approved', 'Reviewed')
+      AND p.status = 'Approved'
     ORDER BY p.id DESC
 ";
 
@@ -51,6 +51,7 @@ body {
     background: #1f1d29;
     color: #e6e6e6;
 }
+
 header {
     background: linear-gradient(135deg, #1abc9c, #16a085);
     padding: 16px 32px;
@@ -58,6 +59,7 @@ header {
     justify-content: space-between;
     align-items: center;
 }
+
 .logout {
     text-decoration: none;
     color: white;
@@ -65,40 +67,147 @@ header {
     padding: 6px 16px;
     border-radius: 20px;
 }
-.container { padding: 40px; }
 
+.container {
+    padding: 40px;
+}
+
+/* Proposal Card */
 .proposal-card {
     background: #2c2a38;
     padding: 26px;
     border-radius: 14px;
     margin-bottom: 26px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.5);
 }
 
+/* Header */
+.proposal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Status Badges */
 .status-badge {
-    padding: 6px 16px;
-    border-radius: 20px;
+    padding: 8px 18px;
+    border-radius: 30px;
     font-size: 12px;
-    font-weight: bold;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
-.status-pending { background: #f39c12; color: #1f1d29; }
-.status-reviewed { background: #2ecc71; }
 
+.status-pending {
+    background: linear-gradient(135deg, #f39c12, #f1c40f);
+    color: #1f1d29;
+}
+
+.status-reviewed {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+}
+
+/* Buttons */
 .btn {
     padding: 8px 18px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
+    transition: all 0.3s;
 }
-.btn-primary { background: #1abc9c; color: white; }
-.btn-secondary { background: #34495e; color: white; }
 
+.btn-primary {
+    background: #1abc9c;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #16a085;
+}
+
+.btn-secondary {
+    background: #34495e;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #2c3e50;
+}
+
+.btn-danger {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+}
+
+/* Attachments */
+.attachments {
+    margin-top: 14px;
+    padding: 14px;
+    background: #1f1d29;
+    border-radius: 10px;
+}
+
+.attachments h4 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: #1abc9c;
+}
+
+.attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 14px;
+}
+
+.attachment-item a {
+    color: #1abc9c;
+    text-decoration: none;
+}
+
+.attachment-item a:hover {
+    text-decoration: underline;
+}
+
+/* Review Section */
+.review-box {
+    margin-top: 18px;
+    background: #1f1d29;
+    padding: 16px;
+    border-radius: 10px;
+}
+
+.review-score {
+    font-weight: 700;
+    color: #1abc9c;
+    margin-bottom: 10px;
+}
+
+.top-info {
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+/* Modal */
 .modal {
     display: none;
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.7);
+    z-index: 1000;
 }
+
 .modal-content {
     background: #2c2a38;
     padding: 25px;
@@ -106,6 +215,7 @@ header {
     margin: 10% auto;
     border-radius: 14px;
 }
+
 textarea, input {
     width: 100%;
     margin-top: 10px;
@@ -114,6 +224,7 @@ textarea, input {
     border: 1px solid #555;
     color: white;
     border-radius: 6px;
+    box-sizing: border-box;
 }
 </style>
 </head>
@@ -125,54 +236,69 @@ textarea, input {
     <a href="logout.php" class="logout">Logout</a>
 </header>
 
+
 <div class="container">
+
+<div class="top-info">
+    <span class="room-code" style="background:#1abc9c; padding:4px 10px; border-radius:4px; font-family:monospace; color:white;">
+        Room: <?= htmlspecialchars($user['room_code'] ?? 'N/A') ?>
+    </span>
+</div>
+
 
 
 <?php while ($row = mysqli_fetch_assoc($result)) { 
+    // Determine review status based on whether feedback exists
+    $has_feedback = !empty(trim($row['reviewer_feedback'] ?? ''));
+    $review_status = $has_feedback ? 'Reviewed' : 'Pending';
     $feedback = trim($row['reviewer_feedback'] ?? '');
-    $status = $feedback ? 'Reviewed' : ($row['proposal_status'] ?? 'Under Review');
-    $status_text = $status; 
+    $displayScore = $row['reviewer_score'] !== null ? htmlspecialchars(number_format((float)$row['reviewer_score'], 1)) : null;
 ?>
     <div class="proposal-card">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="proposal-header">
             <h3><?= htmlspecialchars($row['proposal_title']) ?></h3>
-            <span class="status-badge <?= strtolower($status) === 'reviewed' ? 'status-reviewed' : 'status-pending' ?>">
-                <?= $status_text ?>
+            <span class="status-badge <?= $has_feedback ? 'status-reviewed' : 'status-pending' ?>">
+                <?= $has_feedback ? '✔ Reviewed' : '⏳ Pending' ?>
             </span>
         </div>
 
         <p><?= htmlspecialchars($row['proposal_description']) ?></p>
 
         <?php if (!empty($row['proposal_file_path'])): ?>
-            <p style="margin-top:8px;">
-                <strong>Attachment:</strong>
-                <a href="uploads/proposals/<?= htmlspecialchars($row['proposal_file_path']) ?>" target="_blank" style="color:#1abc9c; margin-left:8px; text-decoration:none;">📎 Download File</a>
-            </p>
+            <div class="attachments">
+                <h4>Attachments</h4>
+                <div class="attachment-item">
+                    📄 <?= htmlspecialchars($row['proposal_file_path']) ?>
+                    <a href="uploads/proposals/<?= htmlspecialchars($row['proposal_file_path']) ?>" target="_blank">View</a>
+                </div>
+            </div>
         <?php endif; ?>
 
-        <?php if ($feedback) { 
-                $displayScore = $row['reviewer_score'] !== null ? htmlspecialchars(number_format((float)$row['reviewer_score'], 1)) : null;
-            ?>
-            <div style="margin-top:15px;">
+        <?php if ($has_feedback): ?>
+            <div class="review-box">
                 <?php if ($displayScore !== null): ?>
-                    <strong>Score:</strong> <?= $displayScore ?>/10
-                    <br>
+                    <div class="review-score">Score: <?= $displayScore ?>/10</div>
                 <?php endif; ?>
-
-                <strong>Feedback:</strong>
                 <p><?= nl2br(htmlspecialchars($feedback)) ?></p>
-
+                <div style="margin-top:10px; display:flex; gap:10px;">
+                    <button class="btn btn-primary"
+                        onclick="openModal(<?= $row['proposal_id'] ?>, '<?= addslashes($feedback) ?>', '<?= $displayScore ?? '' ?>')">
+                        Edit Review
+                    </button>
+                    <button class="btn btn-danger"
+                        onclick="deleteReview(<?= $row['proposal_id'] ?>)">
+                        Delete Review
+                    </button>
+                </div>
+            </div>
+        <?php else: ?>
+            <div style="margin-top:15px;">
                 <button class="btn btn-primary"
-                    onclick="openModal(<?= $row['proposal_id'] ?>, '<?= addslashes($feedback) ?>', '<?= $displayScore ?? '' ?>')">
-                    Edit Review
+                    onclick="openModal(<?= $row['proposal_id'] ?>)">
+                    Review Proposal
                 </button>
             </div>
-        <?php } else { ?>
-            <button class="btn btn-primary"
-                onclick="openModal(<?= $row['proposal_id'] ?>)">
-                Review Proposal
-            </button>
-        <?php } ?>
+        <?php endif; ?>
     </div>
 <?php } ?>
 
@@ -208,6 +334,25 @@ function openModal(proposalId, comments = "", score = "") {
 
 function closeModal() {
     document.getElementById("reviewModal").style.display = "none";
+}
+
+function deleteReview(proposalId) {
+    if (!confirm("Are you sure you want to delete this review?")) return;
+    
+    const fd = new FormData();
+    fd.append('proposal_id', proposalId);
+    fd.append('action', 'delete');
+    
+    fetch('save_review.php', { method: 'POST', body: fd })
+        .then(r => r.text())
+        .then(r => {
+            if (r.trim() === 'success') {
+                location.reload();
+            } else {
+                alert('Error: ' + r);
+            }
+        })
+        .catch(err => alert('Error: ' + err));
 }
 </script>
 
