@@ -71,6 +71,10 @@ INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `room_code`, `st
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `room_code`, `status`) VALUES
 (3, 'Alice Smith', 'alice@example.com', 'pass123', 'Reviewer', 'CYBER99', 'active');
 
+-- Add a new pending user for Admin Role Management
+INSERT INTO `users` (`name`, `email`, `password`, `role`, `room_code`, `status`) 
+VALUES ('Sarah Connor', 'sarah@example.com', 'pass123', NULL, NULL, 'pending');
+
 -- 4. Examples of Proposals for them to interact with
 -- This proposal is for John Doe (PL) to see in his "My Submissions"
 INSERT INTO `proposals` (`user_id`, `room_code`, `title`, `description`, `status`) VALUES 
