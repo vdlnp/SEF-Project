@@ -54,23 +54,30 @@ START TRANSACTION;
 DELETE FROM users;
 DELETE FROM project;
 
--- 1. Create Rooms
+
+-- 1. Ensure the Project Rooms exist
+-- These are the "Room Codes" your PL and Reviewer need to see their data
 INSERT INTO `project` (`id`, `title`, `description`, `deadline`, `room_code`) VALUES
 (1, 'Software Quality Assurance', 'Testing methods for accurate results', '2026-02-28', 'TEST1234'),
-(2, 'Cybersecurity Audit', 'Security assessment', '2026-06-15', 'CYBER99');
+(2, 'Cybersecurity Audit', 'Annual security assessment', '2026-06-15', 'CYBER99');
 
--- 2. This user will stay HIDDEN (Excluded by your code because it's the Admin)
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `room_code`, `status`) VALUES
-(1, 'Content Coordinator', 'user@admin.com', 'admin123', 'Content Coordinator', NULL, 'active');
-
--- 3. This user will show in the "EXISTING USERS" table
+-- 2. Project Lead (PL) Example - John Doe
+-- Assigned to Room 'TEST1234'
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `room_code`, `status`) VALUES
 (2, 'John Doe', 'john@example.com', 'pass123', 'Project Lead', 'TEST1234', 'active');
 
--- 4. These users will show in the "SELECT USER" dropdown (Pending Users)
--- They have role=NULL, which matches your PHP: "WHERE role IS NULL"
+-- 3. Reviewer Example - Alice Smith
+-- Assigned to Room 'CYBER99'
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `room_code`, `status`) VALUES
-(3, 'Alice Smith', 'alice@example.com', 'pass123', NULL, NULL, 'pending'),
-(4, 'Charlie Davis', 'charlie@example.com', 'pass123', NULL, NULL, 'pending');
+(3, 'Alice Smith', 'alice@example.com', 'pass123', 'Reviewer', 'CYBER99', 'active');
+
+-- 4. Examples of Proposals for them to interact with
+-- This proposal is for John Doe (PL) to see in his "My Submissions"
+INSERT INTO `proposals` (`user_id`, `room_code`, `title`, `description`, `status`) VALUES 
+(2, 'TEST1234', 'Automated Testing Suite', 'Proposal to implement Selenium for the SQA project.', 'Under Review');
+
+-- This proposal is for Alice Smith (Reviewer) to see in her "Pending Reviews"
+INSERT INTO `proposals` (`user_id`, `room_code`, `title`, `description`, `status`) VALUES 
+(4, 'CYBER99', 'Firewall Protocol Update', 'Security patch for the main perimeter server.', 'Under Review');
 
 COMMIT;
