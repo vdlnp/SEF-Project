@@ -3,37 +3,70 @@ session_start();
 include "db.php";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $email = mysqli_real_escape_string($conn, $_POST['email']);
     $password = mysqli_real_escape_string($conn, $_POST['password']);
     $roomCode = strtoupper($_POST['room_code'] ?? '');
 
+    // =====================================
+    // DEFAULT ADMIN ACCOUNT (HARD-CODED)
+    // =====================================
+    if ($email === "user@admin.com" && $password === "admin123") {
+
+        $_SESSION['user'] = [
+            'id' => 0,
+            'name' => 'System Admin',
+            'email' => $email,
+            'role' => 'Admin',
+            'status' => 'active',
+            'room_code' => null
+        ];
+
+        header("Location: AdminMain.php");
+        exit;
+    }
+
+    // =====================================
+    // NORMAL USER LOGIN (DATABASE)
+    // =====================================
     $sql = "SELECT * FROM users WHERE email='$email' AND password='$password'";
     $result = mysqli_query($conn, $sql);
     $user = mysqli_fetch_assoc($result);
 
     if (!$user) {
         $error = "Invalid email or password";
+
     } elseif ($user['role'] === 'Admin' || $user['role'] === 'Content Coordinator') {
+
         $_SESSION['user'] = $user;
         header("Location: AdminMain.php");
         exit;
+
     } elseif ($user['status'] !== 'active' || empty($user['room_code'])) {
+
         $error = "Account pending activation. Please wait for admin approval.";
+
     } elseif ($roomCode !== $user['room_code']) {
+
         $error = "Invalid room code for your account";
+
     } else {
+
         $_SESSION['user'] = $user;
 
         switch ($user['role']) {
             case 'Project Lead':
                 header("Location: PLmain.php");
                 break;
+
             case 'Reviewer':
                 header("Location: ReviewerMain.php");
                 break;
+
             case 'Executive Approver':
-                header("Location: ApproverMain.php");
+                header("Location: EPMain.php");
                 break;
+
             default:
                 $error = "Invalid role assigned";
         }
@@ -94,26 +127,19 @@ input {
     box-sizing: border-box;
 }
 
-input::placeholder {
-    color: #888;
-}
-
 .btn {
     width: 100%;
     background: #1abc9c;
     border: none;
-    padding: 12px 20px;
+    padding: 12px;
     color: white;
     border-radius: 10px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 16px;
-    transition: all 0.3s ease;
 }
 
 .btn:hover {
     background: #16a085;
-    transform: translateY(-2px);
 }
 
 .error {
@@ -123,21 +149,6 @@ input::placeholder {
     border-radius: 6px;
     margin-bottom: 20px;
     text-align: center;
-}
-
-.register-link {
-    text-align: center;
-    margin-top: 20px;
-    color: #cfcfcf;
-}
-
-.register-link a {
-    color: #1abc9c;
-    text-decoration: none;
-}
-
-.register-link a:hover {
-    text-decoration: underline;
 }
 
 .info-note {
@@ -151,41 +162,38 @@ input::placeholder {
 }
 </style>
 </head>
+
 <body>
 
 <div class="login-container">
     <h2>Project Bidding System</h2>
-    
+
     <?php if (isset($error)): ?>
         <div class="error"><?= $error ?></div>
     <?php endif; ?>
-    
+
     <div class="info-note">
         💡 Non-admin users need a room code to login
     </div>
-    
+
     <form method="POST" action="login.php">
         <div class="form-group">
             <label>Email</label>
-            <input type="email" name="email" required placeholder="Enter your email">
+            <input type="email" name="email" required>
         </div>
-        
+
         <div class="form-group">
             <label>Password</label>
-            <input type="password" name="password" required placeholder="Enter your password">
+            <input type="password" name="password" required>
         </div>
-        
+
         <div class="form-group">
             <label>Room Code (Leave blank if Admin)</label>
-            <input type="text" name="room_code" placeholder="Enter room code" style="text-transform: uppercase;">
+            <input type="text" name="room_code" style="text-transform: uppercase;">
         </div>
-        
+
         <button type="submit" class="btn">Login</button>
     </form>
-    
-    <div class="register-link">
-        Don't have an account? <a href="register.php">Register here</a>
-    </div>
 </div>
 
 </body>
