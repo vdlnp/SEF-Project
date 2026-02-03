@@ -39,6 +39,7 @@ CREATE TABLE `proposals` (
   `file_path` varchar(255) DEFAULT NULL,
   `status` enum('Under Review','Approved','Rejected') DEFAULT 'Under Review',
   `reviewer_feedback` text DEFAULT NULL,
+  `reviewer_score` decimal(4,1) DEFAULT NULL,
   `submitted_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `reviewed_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -86,3 +87,11 @@ INSERT INTO `proposals` (`user_id`, `room_code`, `title`, `description`, `status
 (4, 'CYBER99', 'Firewall Protocol Update', 'Security patch for the main perimeter server.', 'Under Review');
 
 COMMIT;
+
+-- Add reviewer_score column if missing (safe to run against existing databases)
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='proposals' AND COLUMN_NAME='reviewer_score');
+SET @s = IF(@col_exists = 0, 'ALTER TABLE `proposals` ADD COLUMN `reviewer_score` DECIMAL(4,1) DEFAULT NULL', 'SELECT "column exists"');
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
