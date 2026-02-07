@@ -150,7 +150,7 @@ header h1 { font-size:22px; }
 
 /* Container */
 .container {
-    max-width:1000px;
+    max-width:1200px;
     width:95%;
     margin:30px auto;
     flex:1;
@@ -196,8 +196,8 @@ header h1 { font-size:22px; }
 }
 
 .submission-card:hover {
-    transform:translateY(-4px) scale(1.02);
-    background:linear-gradient(135deg,#1abc9c,#2c2a38);
+    transform:translateY(-2px);
+    box-shadow:0 8px 20px rgba(0,0,0,0.5);
 }
 
 .submission-title {
@@ -207,14 +207,18 @@ header h1 { font-size:22px; }
     margin-bottom:10px;
 }
 
-.submission-title h3 { font-size:18px; font-weight:500; }
+.submission-title h3 { 
+    font-size:20px; 
+    font-weight:600;
+    color:#1abc9c;
+}
 
 .status-badge {
-    padding:4px 12px;
+    padding:5px 14px;
     border-radius:20px;
     font-size:12px;
     text-transform:uppercase;
-    font-weight:500;
+    font-weight:600;
 }
 .status-under-review { background:#fbbf24; color:#78350f; }
 .status-approved { background:#34d399; color:#064e3b; }
@@ -224,51 +228,201 @@ header h1 { font-size:22px; }
 .submission-meta {
     font-size:13px;
     color:#cfcfcf;
-    margin-bottom:12px;
+    margin-bottom:15px;
+    padding-bottom:15px;
+    border-bottom:1px solid #3a3847;
 }
 
-.submission-description {
+/* Bidding Info Grid */
+.bidding-summary {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:15px;
+    margin-bottom:20px;
+    padding:15px;
+    background:#1f1d29;
+    border-radius:10px;
+}
+
+.bid-stat {
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+}
+
+.bid-stat-label {
+    font-size:11px;
+    color:#888;
+    text-transform:uppercase;
+    font-weight:600;
+    letter-spacing:0.5px;
+}
+
+.bid-stat-value {
+    font-size:16px;
+    color:#e6e6e6;
+    font-weight:600;
+}
+
+.bid-stat-value.highlight {
+    color:#1abc9c;
+    font-size:18px;
+}
+
+/* Expandable Sections */
+.detail-section {
+    margin-top:15px;
+    padding-top:15px;
+    border-top:1px solid #3a3847;
+}
+
+.detail-section h4 {
     font-size:14px;
+    color:#1abc9c;
+    margin-bottom:8px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.detail-content {
+    font-size:13px;
     color:#b0b8c4;
-    margin-bottom:15px;
-    line-height:1.5;
+    line-height:1.6;
+    padding:10px;
+    background:#1f1d29;
+    border-radius:8px;
+    white-space:pre-line;
+}
+
+.detail-list {
+    list-style:none;
+    padding-left:0;
+}
+
+.detail-list li {
+    padding:8px 0;
+    border-bottom:1px solid #2c2a38;
+}
+
+.detail-list li:last-child {
+    border-bottom:none;
 }
 
 /* Attachments */
-.attachments h4 { font-size:14px; margin-bottom:6px; }
+.attachments {
+    margin-top:15px;
+    padding:12px;
+    background:#1f1d29;
+    border-radius:8px;
+}
+
+.attachments h4 { 
+    font-size:14px; 
+    margin-bottom:8px;
+    color:#1abc9c;
+}
+
 .attachments a {
     font-size:13px;
     color:#1abc9c;
     text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
 }
-.attachments a:hover { text-decoration:underline; }
+
+.attachments a:hover { 
+    text-decoration:underline;
+}
+
+/* View More Toggle */
+.view-more-btn {
+    background:#34495e;
+    color:white;
+    border:none;
+    padding:8px 16px;
+    border-radius:6px;
+    font-size:13px;
+    cursor:pointer;
+    margin-top:10px;
+    transition:0.3s;
+}
+
+.view-more-btn:hover {
+    background:#4a5f7f;
+}
+
+.expanded-details {
+    display:none;
+    margin-top:15px;
+}
+
+.expanded-details.show {
+    display:block;
+}
 
 /* Actions */
 .submission-actions {
     display:flex;
     gap:10px;
-    margin-top:10px;
+    margin-top:20px;
+    padding-top:15px;
+    border-top:1px solid #3a3847;
 }
 
 .action-btn {
     flex:1;
-    padding:10px;
+    padding:12px;
     border-radius:8px;
     border:none;
     font-size:14px;
-    font-weight:500;
+    font-weight:600;
     cursor:pointer;
     transition:0.3s;
     color:white;
 }
 
-.approve-btn { background:#10b981; }
-.reject-btn { background:#ef4444; }
+.approve-btn { 
+    background:#10b981;
+}
 
-.processed { opacity:0.6; }
+.approve-btn:hover {
+    background:#059669;
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(16,185,129,0.4);
+}
+
+.reject-btn { 
+    background:#ef4444;
+}
+
+.reject-btn:hover {
+    background:#dc2626;
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(239,68,68,0.4);
+}
+
+.processed { 
+    opacity:0.7;
+}
+
 .processed .submission-actions {
     pointer-events:none;
     opacity:0.5;
+}
+
+/* Empty State */
+.empty-state {
+    text-align:center;
+    padding:60px 20px;
+    color:#888;
+}
+
+.empty-state-icon {
+    font-size:64px;
+    margin-bottom:15px;
 }
 
 /* Footer */
@@ -292,13 +446,18 @@ footer {
 <div class="container">
 
     <div class="top-info">
-        <span class="pending-count"><?= $pendingCount ?> Pending</span>
+        <span class="pending-count"><?= $pendingCount ?> Pending Review</span>
         <span class="room-code">Room: <?= htmlspecialchars($logged_in_room) ?></span>
     </div>
 
     <div class="submissions-list">
         <?php if (empty($proposals)): ?>
-            <div class="submission-card">No proposals submitted.</div>
+            <div class="submission-card">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <p>No project bids submitted yet</p>
+                </div>
+            </div>
         <?php else: ?>
             <?php foreach ($proposals as $p): ?>
                 <div class="submission-card <?= $p['status'] !== 'Under Review' ? 'processed' : '' ?>">
@@ -310,33 +469,149 @@ footer {
                     </div>
 
                     <p class="submission-meta">
-                        Submitted by <?= htmlspecialchars($p['sender_name']) ?>
-                        • <?= date('M d, Y', strtotime($p['submitted_at'])) ?>
+                        👤 Submitted by <strong><?= htmlspecialchars($p['sender_name']) ?></strong>
+                        • <?= date('M d, Y g:i A', strtotime($p['submitted_at'])) ?>
                     </p>
 
-                    <p class="submission-description">
-                        <?= nl2br(htmlspecialchars($p['description'])) ?>
-                    </p>
-
-                    <?php if (!empty($p['file_path'])): ?>
-                        <div class="attachments">
-                            <h4>Attachment:</h4>
-                            <a href="uploads/proposals/<?= htmlspecialchars($p['file_path']) ?>" target="_blank">
-                                📎 <?= htmlspecialchars($p['file_path']) ?>
-                            </a>
+                    <!-- Bidding Summary Grid -->
+                    <?php if (!empty($p['budget_amount']) || !empty($p['timeline_weeks']) || !empty($p['team_size'])): ?>
+                    <div class="bidding-summary">
+                        <?php if (!empty($p['budget_amount']) && $p['budget_amount'] > 0): ?>
+                        <div class="bid-stat">
+                            <div class="bid-stat-label">Total Budget</div>
+                            <div class="bid-stat-value highlight">
+                                RM <?= number_format($p['budget_amount'], 2) ?>
+                            </div>
                         </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['timeline_weeks'])): ?>
+                        <div class="bid-stat">
+                            <div class="bid-stat-label">Duration</div>
+                            <div class="bid-stat-value"><?= $p['timeline_weeks'] ?> weeks</div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['start_date'])): ?>
+                        <div class="bid-stat">
+                            <div class="bid-stat-label">Start Date</div>
+                            <div class="bid-stat-value"><?= date('M d, Y', strtotime($p['start_date'])) ?></div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['end_date'])): ?>
+                        <div class="bid-stat">
+                            <div class="bid-stat-label">End Date</div>
+                            <div class="bid-stat-value"><?= date('M d, Y', strtotime($p['end_date'])) ?></div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['team_size'])): ?>
+                        <div class="bid-stat">
+                            <div class="bid-stat-label">👥 Team Size</div>
+                            <div class="bid-stat-value"><?= $p['team_size'] ?> members</div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['methodology'])): ?>
+                        <div class="bid-stat">
+                            <div class="bid-stat-label">Methodology</div>
+                            <div class="bid-stat-value"><?= htmlspecialchars($p['methodology']) ?></div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['payment_terms'])): ?>
+                        <div class="bid-stat">
+                            <div class="bid-stat-label">Payment Terms</div>
+                            <div class="bid-stat-value"><?= htmlspecialchars($p['payment_terms']) ?></div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
                     <?php endif; ?>
 
+                    <!-- Description -->
+                    <?php if (!empty($p['description'])): ?>
+                    <div class="detail-section">
+                        <h4>Project Description</h4>
+                        <div class="detail-content">
+                            <?= nl2br(htmlspecialchars($p['description'])) ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Scope of Work (collapsed by default) -->
+                    <?php if (!empty($p['scope_of_work']) || !empty($p['deliverables']) || !empty($p['technical_requirements']) || !empty($p['risk_assessment'])): ?>
+                    <button class="view-more-btn" onclick="toggleDetails(<?= $p['id'] ?>)">
+                        View Detailed Bid Information
+                    </button>
+
+                    <div id="details-<?= $p['id'] ?>" class="expanded-details">
+                        <?php if (!empty($p['scope_of_work'])): ?>
+                        <div class="detail-section">
+                            <h4>Scope of Work</h4>
+                            <div class="detail-content">
+                                <?= nl2br(htmlspecialchars($p['scope_of_work'])) ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['technical_requirements'])): ?>
+                        <div class="detail-section">
+                            <h4>Technical Requirements & Stack</h4>
+                            <div class="detail-content">
+                                <?= nl2br(htmlspecialchars($p['technical_requirements'])) ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['deliverables'])): ?>
+                        <div class="detail-section">
+                            <h4>Key Deliverables</h4>
+                            <div class="detail-content">
+                                <?= nl2br(htmlspecialchars($p['deliverables'])) ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($p['risk_assessment'])): ?>
+                        <div class="detail-section">
+                            <h4>⚠️ Risk Assessment & Mitigation</h4>
+                            <div class="detail-content">
+                                <?= nl2br(htmlspecialchars($p['risk_assessment'])) ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Attachments -->
+                    <?php if (!empty($p['file_path'])): ?>
+                    <div class="attachments">
+                        <h4>📎 Supporting Documents</h4>
+                        <a href="uploads/proposals/<?= htmlspecialchars($p['file_path']) ?>" target="_blank">
+                            📄 <?= htmlspecialchars($p['file_path']) ?>
+                        </a>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Review Actions -->
                     <?php if ($p['status'] === 'Under Review'): ?>
                         <div class="submission-actions">
                             <button class="action-btn approve-btn"
                                 onclick="handleAction(<?= $p['id'] ?>,'approve')">
-                                Approve
+                                Approve Bid
                             </button>
                             <button class="action-btn reject-btn"
                                 onclick="handleAction(<?= $p['id'] ?>,'decline')">
-                                Decline
+                                Decline Bid
                             </button>
+                        </div>
+                    <?php else: ?>
+                        <div style="margin-top:15px;padding:10px;background:#1f1d29;border-radius:8px;text-align:center;color:#888;">
+                            Decision made: <strong style="color:#1abc9c;"><?= $p['status'] ?></strong>
+                            <?php if (!empty($p['reviewed_at'])): ?>
+                                on <?= date('M d, Y g:i A', strtotime($p['reviewed_at'])) ?>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -346,12 +621,26 @@ footer {
 </div>
 
 <footer>
-Project Bidding System | Executive Module
+Project Bidding System | Executive Approver Portal
 </footer>
 
 <script>
+function toggleDetails(id) {
+    const detailsDiv = document.getElementById('details-' + id);
+    const btn = event.target;
+    
+    if (detailsDiv.classList.contains('show')) {
+        detailsDiv.classList.remove('show');
+        btn.textContent = 'View Detailed Bid Information';
+    } else {
+        detailsDiv.classList.add('show');
+        btn.textContent = 'Hide Detailed Bid Information';
+    }
+}
+
 function handleAction(id, action) {
-    if (!confirm(`Are you sure you want to ${action} this proposal?`)) return;
+    const actionText = action === 'approve' ? 'approve' : 'decline';
+    if (!confirm(`Are you sure you want to ${actionText} this bid?`)) return;
 
     const fd = new FormData();
     fd.append('proposalId', id);

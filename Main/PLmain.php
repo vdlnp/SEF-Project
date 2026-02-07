@@ -21,6 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'submitProposal') {
         $title = $_POST['title'] ?? '';
         $description = $_POST['description'] ?? '';
+        $scope_of_work = $_POST['scope_of_work'] ?? '';
+        $budget_amount = floatval($_POST['budget_amount'] ?? 0);
+        $timeline_weeks = intval($_POST['timeline_weeks'] ?? 0);
+        $start_date = $_POST['start_date'] ?? '';
+        $end_date = $_POST['end_date'] ?? '';
+        $team_size = intval($_POST['team_size'] ?? 0);
+        $methodology = $_POST['methodology'] ?? '';
+        $deliverables = $_POST['deliverables'] ?? '';
+        $technical_requirements = $_POST['technical_requirements'] ?? '';
+        $risk_assessment = $_POST['risk_assessment'] ?? '';
+        $payment_terms = $_POST['payment_terms'] ?? '';
         $fileName = '';
 
         if (isset($_FILES['file'])) {
@@ -52,8 +63,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $stmt = $conn->prepare("INSERT INTO proposals (user_id, room_code, title, description, file_path, status, submitted_at) VALUES (?, ?, ?, ?, ?, 'Under Review', NOW())");
-        $stmt->bind_param("issss", $userId, $userRoom, $title, $description, $fileName);
+        $stmt = $conn->prepare("INSERT INTO proposals (user_id, room_code, title, description, scope_of_work, budget_amount, timeline_weeks, start_date, end_date, team_size, methodology, deliverables, technical_requirements, risk_assessment, payment_terms, file_path, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', NOW())");
+        $stmt->bind_param(
+            "issssdississssss",
+            $userId, 
+            $userRoom, 
+            $title, 
+            $description, 
+            $scope_of_work, 
+            $budget_amount, 
+            $timeline_weeks, 
+            $start_date, 
+            $end_date, 
+            $team_size, 
+            $methodology, 
+            $deliverables, 
+            $technical_requirements, 
+            $risk_assessment, 
+            $payment_terms, 
+            $fileName 
+        );
 
         if ($stmt->execute()) {
             echo 'success';
@@ -68,6 +97,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $proposalId = (int)($_POST['proposalId'] ?? 0);
         $title = $_POST['title'] ?? '';
         $description = $_POST['description'] ?? '';
+        $scope_of_work = $_POST['scope_of_work'] ?? '';
+        $budget_amount = floatval($_POST['budget_amount'] ?? 0);
+        $timeline_weeks = intval($_POST['timeline_weeks'] ?? 0);
+        $start_date = $_POST['start_date'] ?? '';
+        $end_date = $_POST['end_date'] ?? '';
+        $team_size = intval($_POST['team_size'] ?? 0);
+        $methodology = $_POST['methodology'] ?? '';
+        $deliverables = $_POST['deliverables'] ?? '';
+        $technical_requirements = $_POST['technical_requirements'] ?? '';
+        $risk_assessment = $_POST['risk_assessment'] ?? '';
+        $payment_terms = $_POST['payment_terms'] ?? '';
         $fileName = '';
 
         // Verify the proposal belongs to the user and is rejected
@@ -110,6 +150,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             UPDATE proposals 
             SET title = ?, 
                 description = ?, 
+                scope_of_work = ?,
+                budget_amount = ?,
+                timeline_weeks = ?,
+                start_date = ?,
+                end_date = ?,
+                team_size = ?,
+                methodology = ?,
+                deliverables = ?,
+                technical_requirements = ?,
+                risk_assessment = ?,
+                payment_terms = ?,
                 file_path = ?, 
                 status = 'Under Review',
                 reviewer_feedback = NULL,
@@ -118,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 submitted_at = NOW()
             WHERE id = ? AND user_id = ?
         ");
-        $stmt->bind_param("sssii", $title, $description, $fileName, $proposalId, $userId);
+        $stmt->bind_param("sssdisssssssssii", $title, $description, $scope_of_work, $budget_amount, $timeline_weeks, $start_date, $end_date, $team_size, $methodology, $deliverables, $technical_requirements, $risk_assessment, $payment_terms, $fileName, $proposalId, $userId);
 
         if ($stmt->execute()) {
             echo 'success';
@@ -371,8 +422,10 @@ header h1 {
     padding: 30px;
     border-radius: 14px;
     width: 90%;
-    max-width: 700px;
+    max-width: 900px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+    max-height: 85vh;
+    overflow-y: auto;
 }
 
 .close {
@@ -393,34 +446,96 @@ header h1 {
     margin-bottom: 25px;
 }
 
-input, textarea {
+.form-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #1f1d29;
+    border-radius: 10px;
+    border-left: 4px solid #1abc9c;
+}
+
+.form-section h3 {
+    color: #1abc9c;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #1abc9c;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-group .required {
+    color: #e74c3c;
+}
+
+input, textarea, select {
     width: 100%;
     padding: 12px;
-    margin-top: 12px;
     border-radius: 8px;
-    border: none;
-    background: #1f1d29;
+    border: 1px solid #3a3847;
+    background: #2c2a38;
     color: #e6e6e6;
     box-sizing: border-box;
+    font-family: "Segoe UI", Arial, sans-serif;
+    transition: border-color 0.3s;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #1abc9c;
 }
 
 input[type="file"] {
     padding: 8px;
+    background: #1f1d29;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .submit-btn {
     margin-top: 15px;
     background: #1abc9c;
     border: none;
-    padding: 12px 20px;
+    padding: 14px 30px;
     color: white;
     border-radius: 10px;
     cursor: pointer;
     font-weight: 600;
+    font-size: 15px;
+    transition: all 0.3s;
 }
 
 .submit-btn:hover {
     background: #16a085;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26,188,156,0.4);
 }
 
 .proposal {
@@ -437,10 +552,17 @@ input[type="file"] {
     max-width: 70%;
 }
 
+.proposal-meta {
+    font-size: 12px;
+    color: #888;
+    margin-top: 8px;
+}
+
 .status {
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 12px;
+    font-weight: 600;
 }
 
 .under-review { background: #fbbf24; color: #78350f; }
@@ -454,16 +576,73 @@ input[type="file"] {
     border-radius: 8px;
     color: white;
     cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.view-btn:hover {
+    background: #16a085;
+    transform: translateY(-2px);
 }
 
 .btn-secondary {
     background: #34495e;
     border: none;
-    padding: 12px 20px;
-    color: white;
-    border-radius: 8px;
+    padding: 14px 30px; /* match submit-btn */
+    color: #ecf0f1;
+    border-radius: 10px; /* match submit-btn */
     cursor: pointer;
     font-weight: 600;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(52, 73, 94, 0.5);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #34495e, #1abc9c);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 20px rgba(26, 188, 156, 0.6);
+    color: #fff;
+}
+
+.btn-secondary, .submit-btn {
+    flex: 1;
+    height: 50px;               /* same height */
+    padding: 0 30px;            /* horizontal padding only */
+    display: flex;
+    align-items: center;        /* vertical center */
+    justify-content: center;    /* horizontal center */
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.info-item {
+    background: #2c2a38;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.info-label {
+    color: #1abc9c;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.info-value {
+    color: #e6e6e6;
+    font-size: 14px;
 }
 
 footer {
@@ -473,6 +652,24 @@ footer {
     padding: 14px;
     font-size: 14px;
     border-top: 1px solid #333333;
+}
+
+/* Scrollbar styling */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #1f1d29;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #1abc9c;
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #16a085;
 }
 </style>
 </head>
@@ -522,7 +719,7 @@ footer {
 
 <div class="container">
     <div class="welcome">
-        Welcome, <?= htmlspecialchars($userName) ?>! Manage and track your proposals
+        Welcome, <?= htmlspecialchars($userName) ?>! Manage and track your project bids
     </div>
 
     <?php if ($projectInfo): ?>
@@ -552,13 +749,130 @@ footer {
         <h2>Submit Proposal</h2>
         
         <form id="proposalForm" enctype="multipart/form-data">
-            <input type="text" id="proposalTitle" placeholder="Proposal Title" required>
-            <textarea id="proposalDesc" rows="4" placeholder="Proposal Description" required></textarea>
-            <div class="file-input">
-                <label>Attach File:</label><br>
-                <input type="file" id="proposalFile" name="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx">
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h3>Basic Information</h3>
+                
+                <div class="form-group">
+                    <label>Project Title <span class="required">*</span></label>
+                    <input type="text" id="proposalTitle" placeholder="e.g., E-Commerce Website Development" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Project Description <span class="required">*</span></label>
+                    <textarea id="proposalDesc" rows="4" placeholder="Provide a comprehensive overview of your proposed solution..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Scope of Work <span class="required">*</span></label>
+                    <textarea id="scopeOfWork" rows="5" placeholder="Detail the specific tasks, features, and deliverables included in this bid..." required></textarea>
+                </div>
             </div>
-            <button type="submit" class="submit-btn">Submit Proposal</button>
+
+            <!-- Financial Details -->
+            <div class="form-section">
+                <h3>Financial Details</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Total Budget/Cost Estimation <span class="required">*</span></label>
+                        <input type="number" id="budgetAmount" placeholder="Enter amount in RM" step="0.01" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Terms <span class="required">*</span></label>
+                        <select id="paymentTerms" required>
+                            <option value="">Select payment structure</option>
+                            <option value="Full Upfront">Full Payment Upfront</option>
+                            <option value="50-50">50% Upfront, 50% On Completion</option>
+                            <option value="30-40-30">30% Start, 40% Milestone, 30% Completion</option>
+                            <option value="Milestone-Based">Milestone-Based Payments</option>
+                            <option value="Monthly">Monthly Installments</option>
+                            <option value="Other">Other (Specify in description)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline & Resources -->
+            <div class="form-section">
+                <h3>Timeline & Resources</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Project Duration (Weeks) <span class="required">*</span></label>
+                        <input type="number" id="timelineWeeks" placeholder="e.g., 12" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Team Size <span class="required">*</span></label>
+                        <input type="number" id="teamSize" placeholder="Number of team members" min="1" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Proposed Start Date <span class="required">*</span></label>
+                        <input type="date" id="startDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estimated End Date <span class="required">*</span></label>
+                        <input type="date" id="endDate" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Approach -->
+            <div class="form-section">
+                <h3>Technical Approach</h3>
+                
+                <div class="form-group">
+                    <label>Development Methodology <span class="required">*</span></label>
+                    <select id="methodology" required>
+                        <option value="">Select methodology</option>
+                        <option value="Agile">Agile</option>
+                        <option value="Scrum">Scrum</option>
+                        <option value="Waterfall">Waterfall</option>
+                        <option value="Kanban">Kanban</option>
+                        <option value="Hybrid">Hybrid Approach</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Technical Requirements & Technologies <span class="required">*</span></label>
+                    <textarea id="technicalReq" rows="5" placeholder="List technologies, frameworks, tools, and technical stack you'll use (e.g., React, Node.js, MongoDB, AWS...)" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Key Deliverables <span class="required">*</span></label>
+                    <textarea id="deliverables" rows="5" placeholder="List all deliverables (e.g., Source code, Documentation, Training materials, Deployment...)" required></textarea>
+                </div>
+            </div>
+
+            <!-- Risk Management -->
+            <div class="form-section">
+                <h3>⚠️ Risk Management</h3>
+                
+                <div class="form-group">
+                    <label>Risk Assessment & Mitigation Plan <span class="required">*</span></label>
+                    <textarea id="riskAssessment" rows="5" placeholder="Identify potential risks and your mitigation strategies..." required></textarea>
+                </div>
+            </div>
+
+            <!-- Supporting Documents -->
+            <div class="form-section">
+                <h3>📎Supporting Documents</h3>
+                
+                <div class="form-group">
+                    <label>Attach Proposal Document (Optional)</label>
+                    <input type="file" id="proposalFile" name="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx">
+                    <small style="display: block; margin-top: 5px; color: #888;">Accepted formats: PDF, DOC, DOCX, TXT, PPT, PPTX (Max 10MB)</small>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit Bid</button>
         </form>
     </div>
 </div>
@@ -573,15 +887,21 @@ footer {
             <?php foreach($proposals as $p): ?>
             <div class="proposal">
                 <div class="proposal-info">
-                    <strong><?= htmlspecialchars($p['title']) ?></strong><br>
+                    <strong style="font-size: 16px;"><?= htmlspecialchars($p['title']) ?></strong><br>
                     <span class="status <?= strtolower(str_replace(' ', '-', $p['status'])) ?>"><?= $p['status'] ?></span>
+                    <div class="proposal-meta">
+                        💰 Budget: RM <?= number_format($p['budget_amount'] ?? 0, 2) ?> | 
+                        ⏱️ Duration: <?= $p['timeline_weeks'] ?? 'N/A' ?> weeks | 
+                        👥 Team: <?= $p['team_size'] ?? 'N/A' ?> members
+                    </div>
                 </div>
                 <button class="view-btn" onclick='viewProposal(<?= json_encode($p) ?>)'>View Details</button>
             </div>
             <?php endforeach; ?>
         <?php else: ?>
             <div style="text-align:center;padding:40px;color:#888;">
-                <p>No proposals submitted yet</p>
+                <p style="font-size: 48px; margin-bottom: 10px;">📋</p>
+                <p>No bids submitted yet</p>
             </div>
         <?php endif; ?>
 
@@ -607,21 +927,73 @@ footer {
             
             <!-- View Mode -->
             <div id="viewMode">
-                <div style="margin-bottom: 15px;">
+                <!-- Financial & Timeline Info Grid -->
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Total Budget</div>
+                        <div class="info-value" id="detailBudget">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Duration</div>
+                        <div class="info-value" id="detailTimeline">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Start Date</div>
+                        <div class="info-value" id="detailStartDate">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">End Date</div>
+                        <div class="info-value" id="detailEndDate">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Team Size</div>
+                        <div class="info-value" id="detailTeamSize">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Methodology</div>
+                        <div class="info-value" id="detailMethodology">-</div>
+                    </div>
+                    <div class="info-item" style="grid-column: span 2;">
+                        <div class="info-label">Payment Terms</div>
+                        <div class="info-value" id="detailPaymentTerms">-</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
                     <strong style="color: #1abc9c;">Description:</strong>
                     <p id="detailDescription" style="margin-top: 8px; line-height: 1.6;"></p>
                 </div>
+
+                <div style="margin-top: 20px;">
+                    <strong style="color: #1abc9c;">Scope of Work:</strong>
+                    <p id="detailScopeOfWork" style="margin-top: 8px; line-height: 1.6;"></p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <strong style="color: #1abc9c;">Technical Requirements:</strong>
+                    <p id="detailTechnicalReq" style="margin-top: 8px; line-height: 1.6;"></p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <strong style="color: #1abc9c;">Deliverables:</strong>
+                    <p id="detailDeliverables" style="margin-top: 8px; line-height: 1.6;"></p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <strong style="color: #1abc9c;">Risk Assessment:</strong>
+                    <p id="detailRiskAssessment" style="margin-top: 8px; line-height: 1.6;"></p>
+                </div>
                 
-                <div id="detailFileSection" style="margin-bottom: 15px; display: none;">
-                    <strong style="color: #1abc9c;">Attached File:</strong>
+                <div id="detailFileSection" style="margin-top: 20px; display: none;">
+                    <strong style="color: #1abc9c;">Attached Document:</strong>
                     <a id="detailFileLink" href="#" target="_blank" style="color: #1abc9c; margin-left: 10px;">
                         📎 Download File
                     </a>
                 </div>
 
-                <div id="detailScoreSection" style="margin-bottom: 15px; display: none;">
+                <div id="detailScoreSection" style="margin-top: 20px; display: none;">
                     <strong style="color: #1abc9c;">Reviewer Score:</strong>
-                    <span id="detailScore" style="margin-left: 10px; font-weight: bold;"></span>
+                    <span id="detailScore" style="margin-left: 10px; font-weight: bold; font-size: 18px;"></span>
                 </div>
                 
                 <div id="detailFeedbackSection" style="margin-top: 20px; display: none;">
@@ -631,7 +1003,7 @@ footer {
 
                 <div id="editButtonSection" style="margin-top: 20px; display: none;">
                     <button class="submit-btn" onclick="enableEditMode()">
-                        ✏️ Edit & Resubmit Proposal
+                        Edit & Resubmit Proposal
                     </button>
                 </div>
             </div>
@@ -641,34 +1013,135 @@ footer {
                 <form id="resubmitForm" enctype="multipart/form-data">
                     <input type="hidden" id="resubmitProposalId">
                     
-                    <div style="margin-bottom: 15px;">
-                        <label style="color: #1abc9c; display: block; margin-bottom: 8px;">Title:</label>
-                        <input type="text" id="editTitle" required style="width: 100%; padding: 10px; background: #2c2a38; border: 1px solid #555; color: white; border-radius: 6px;">
+                    <div class="form-section">
+                        <h3>Basic Information</h3>
+                        
+                        <div class="form-group">
+                            <label>Project Title <span class="required">*</span></label>
+                            <input type="text" id="editTitle" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Description <span class="required">*</span></label>
+                            <textarea id="editDescription" rows="4" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Scope of Work <span class="required">*</span></label>
+                            <textarea id="editScopeOfWork" rows="5" required></textarea>
+                        </div>
                     </div>
 
-                    <div style="margin-bottom: 15px;">
-                        <label style="color: #1abc9c; display: block; margin-bottom: 8px;">Description:</label>
-                        <textarea id="editDescription" rows="5" required style="width: 100%; padding: 10px; background: #2c2a38; border: 1px solid #555; color: white; border-radius: 6px;"></textarea>
+                    <div class="form-section">
+                        <h3>Financial Details</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Budget Amount <span class="required">*</span></label>
+                                <input type="number" id="editBudgetAmount" step="0.01" min="0" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Payment Terms <span class="required">*</span></label>
+                                <select id="editPaymentTerms" required>
+                                    <option value="Full Upfront">Full Payment Upfront</option>
+                                    <option value="50-50">50% Upfront, 50% On Completion</option>
+                                    <option value="30-40-30">30% Start, 40% Milestone, 30% Completion</option>
+                                    <option value="Milestone-Based">Milestone-Based Payments</option>
+                                    <option value="Monthly">Monthly Installments</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
-                    <div style="margin-bottom: 15px;">
-                        <label style="color: #1abc9c; display: block; margin-bottom: 8px;">Attachment:</label>
-                        <div id="currentFileInfo" style="margin-bottom: 10px; padding: 10px; background: #2c2a38; border-radius: 6px;">
+                    <div class="form-section">
+                        <h3>Timeline & Resources</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Duration (Weeks) <span class="required">*</span></label>
+                                <input type="number" id="editTimelineWeeks" min="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Team Size <span class="required">*</span></label>
+                                <input type="number" id="editTeamSize" min="1" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Start Date <span class="required">*</span></label>
+                                <input type="date" id="editStartDate" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>End Date <span class="required">*</span></label>
+                                <input type="date" id="editEndDate" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Technical Approach</h3>
+                        
+                        <div class="form-group">
+                            <label>Methodology <span class="required">*</span></label>
+                            <select id="editMethodology" required>
+                                <option value="Agile">Agile</option>
+                                <option value="Scrum">Scrum</option>
+                                <option value="Waterfall">Waterfall</option>
+                                <option value="Kanban">Kanban</option>
+                                <option value="Hybrid">Hybrid Approach</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Technical Requirements <span class="required">*</span></label>
+                            <textarea id="editTechnicalReq" rows="5" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Deliverables <span class="required">*</span></label>
+                            <textarea id="editDeliverables" rows="5" required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>⚠️ Risk Management</h3>
+                        
+                        <div class="form-group">
+                            <label>Risk Assessment <span class="required">*</span></label>
+                            <textarea id="editRiskAssessment" rows="5" required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>📎 Supporting Documents</h3>
+                        
+                        <div id="currentFileInfo" style="margin-bottom: 15px; padding: 15px; background: #2c2a38; border-radius: 8px; display: none;">
                             <span style="color: #cfcfcf;">Current file: </span>
                             <span id="currentFileName" style="color: #1abc9c;"></span>
                         </div>
-                        <input type="file" id="editFile" name="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx" style="width: 100%; padding: 8px; background: #2c2a38; border: 1px solid #555; color: white; border-radius: 6px;">
-                        <small style="color: #888; display: block; margin-top: 5px;">Leave empty to keep current file, or upload a new one to replace it</small>
+                        
+                        <div class="form-group">
+                            <label>Upload New Document (Optional)</label>
+                            <input type="file" id="editFile" name="file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx">
+                            <small style="display: block; margin-top: 5px; color: #888;">Leave empty to keep current file, or upload a new one to replace it</small>
+                        </div>
                     </div>
 
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button type="button" class="btn-secondary" onclick="cancelEditMode()" style="flex: 1;">
+                    <div style="display: flex; gap: 15px; margin-top: 20px;">
+                        <button type="button" class="btn-secondary">
                             Cancel
                         </button>
-                        <button type="submit" class="submit-btn" style="flex: 1;">
-                            Resubmit Proposal
+                        <button type="submit" class="submit-btn">
+                            Resubmit Bid
                         </button>
                     </div>
+
                 </form>
             </div>
         </div>
@@ -717,6 +1190,17 @@ document.getElementById('proposalForm').onsubmit = function(e) {
     formData.append('action', 'submitProposal');
     formData.append('title', document.getElementById('proposalTitle').value);
     formData.append('description', document.getElementById('proposalDesc').value);
+    formData.append('scope_of_work', document.getElementById('scopeOfWork').value);
+    formData.append('budget_amount', document.getElementById('budgetAmount').value);
+    formData.append('timeline_weeks', document.getElementById('timelineWeeks').value);
+    formData.append('start_date', document.getElementById('startDate').value);
+    formData.append('end_date', document.getElementById('endDate').value);
+    formData.append('team_size', document.getElementById('teamSize').value);
+    formData.append('methodology', document.getElementById('methodology').value);
+    formData.append('deliverables', document.getElementById('deliverables').value);
+    formData.append('technical_requirements', document.getElementById('technicalReq').value);
+    formData.append('risk_assessment', document.getElementById('riskAssessment').value);
+    formData.append('payment_terms', document.getElementById('paymentTerms').value);
     
     const fileInput = document.getElementById('proposalFile');
     if (fileInput.files.length > 0) {
@@ -730,7 +1214,7 @@ document.getElementById('proposalForm').onsubmit = function(e) {
     .then(res => res.text())
     .then(res => {
         if (res === 'success') {
-            alert('Proposal submitted successfully!');
+            alert('Bid submitted successfully!');
             location.reload();
         } else {
             alert('Error: ' + res);
@@ -746,6 +1230,17 @@ document.getElementById('resubmitForm').onsubmit = function(e) {
     formData.append('proposalId', document.getElementById('resubmitProposalId').value);
     formData.append('title', document.getElementById('editTitle').value);
     formData.append('description', document.getElementById('editDescription').value);
+    formData.append('scope_of_work', document.getElementById('editScopeOfWork').value);
+    formData.append('budget_amount', document.getElementById('editBudgetAmount').value);
+    formData.append('timeline_weeks', document.getElementById('editTimelineWeeks').value);
+    formData.append('start_date', document.getElementById('editStartDate').value);
+    formData.append('end_date', document.getElementById('editEndDate').value);
+    formData.append('team_size', document.getElementById('editTeamSize').value);
+    formData.append('methodology', document.getElementById('editMethodology').value);
+    formData.append('deliverables', document.getElementById('editDeliverables').value);
+    formData.append('technical_requirements', document.getElementById('editTechnicalReq').value);
+    formData.append('risk_assessment', document.getElementById('editRiskAssessment').value);
+    formData.append('payment_terms', document.getElementById('editPaymentTerms').value);
     
     const fileInput = document.getElementById('editFile');
     if (fileInput.files.length > 0) {
@@ -759,7 +1254,7 @@ document.getElementById('resubmitForm').onsubmit = function(e) {
     .then(res => res.text())
     .then(res => {
         if (res === 'success') {
-            alert('Proposal resubmitted successfully!');
+            alert('Bid resubmitted successfully!');
             location.reload();
         } else {
             alert('Error: ' + res);
@@ -774,8 +1269,23 @@ function viewProposal(proposal) {
     document.getElementById('editMode').style.display = 'none';
     
     document.getElementById('detailTitle').textContent = proposal.title;
-    document.getElementById('detailDescription').textContent = proposal.description;
+    document.getElementById('detailDescription').textContent = proposal.description || 'N/A';
+    document.getElementById('detailScopeOfWork').textContent = proposal.scope_of_work || 'N/A';
     document.getElementById('detailDate').textContent = formatDate(proposal.submitted_at);
+
+    // Financial & Timeline Info
+    document.getElementById('detailBudget').textContent = 'RM ' + parseFloat(proposal.budget_amount || 0).toLocaleString('en-MY', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('detailTimeline').textContent = (proposal.timeline_weeks || 'N/A') + ' weeks';
+    document.getElementById('detailStartDate').textContent = proposal.start_date || 'N/A';
+    document.getElementById('detailEndDate').textContent = proposal.end_date || 'N/A';
+    document.getElementById('detailTeamSize').textContent = (proposal.team_size || 'N/A') + ' members';
+    document.getElementById('detailMethodology').textContent = proposal.methodology || 'N/A';
+    document.getElementById('detailPaymentTerms').textContent = proposal.payment_terms || 'N/A';
+
+    // Technical Details
+    document.getElementById('detailTechnicalReq').textContent = proposal.technical_requirements || 'N/A';
+    document.getElementById('detailDeliverables').textContent = proposal.deliverables || 'N/A';
+    document.getElementById('detailRiskAssessment').textContent = proposal.risk_assessment || 'N/A';
 
     const statusElement = document.getElementById('detailStatus');
     statusElement.textContent = proposal.status;
@@ -818,7 +1328,18 @@ function enableEditMode() {
     
     document.getElementById('resubmitProposalId').value = currentProposal.id;
     document.getElementById('editTitle').value = currentProposal.title;
-    document.getElementById('editDescription').value = currentProposal.description;
+    document.getElementById('editDescription').value = currentProposal.description || '';
+    document.getElementById('editScopeOfWork').value = currentProposal.scope_of_work || '';
+    document.getElementById('editBudgetAmount').value = currentProposal.budget_amount || 0;
+    document.getElementById('editTimelineWeeks').value = currentProposal.timeline_weeks || '';
+    document.getElementById('editStartDate').value = currentProposal.start_date || '';
+    document.getElementById('editEndDate').value = currentProposal.end_date || '';
+    document.getElementById('editTeamSize').value = currentProposal.team_size || '';
+    document.getElementById('editMethodology').value = currentProposal.methodology || '';
+    document.getElementById('editDeliverables').value = currentProposal.deliverables || '';
+    document.getElementById('editTechnicalReq').value = currentProposal.technical_requirements || '';
+    document.getElementById('editRiskAssessment').value = currentProposal.risk_assessment || '';
+    document.getElementById('editPaymentTerms').value = currentProposal.payment_terms || '';
     
     if (currentProposal.file_path) {
         document.getElementById('currentFileInfo').style.display = 'block';
@@ -846,6 +1367,20 @@ function formatDate(dateString) {
         minute: '2-digit'
     });
 }
+
+// Set minimum date for date inputs to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('startDate').setAttribute('min', today);
+document.getElementById('endDate').setAttribute('min', today);
+
+// Update end date minimum when start date changes
+document.getElementById('startDate').addEventListener('change', function() {
+    document.getElementById('endDate').setAttribute('min', this.value);
+});
+
+document.getElementById('editStartDate').addEventListener('change', function() {
+    document.getElementById('editEndDate').setAttribute('min', this.value);
+});
 </script>
 
 </body>
