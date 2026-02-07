@@ -1134,7 +1134,7 @@ footer {
                     </div>
 
                     <div style="display: flex; gap: 15px; margin-top: 20px;">
-                        <button type="button" class="btn-secondary">
+                        <button type="button" class="btn-secondary" onclick="cancelEditMode()">
                             Cancel
                         </button>
                         <button type="submit" class="submit-btn">
