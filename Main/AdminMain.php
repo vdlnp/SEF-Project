@@ -1,11 +1,11 @@
 <?php
-include "db.php"; // $conn defined here
+include "db.php"; 
 
 // Handle AJAX actions first
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // 1️⃣ Create Project
+    // Create Project
     if ($action === 'createProject') {
         $title = $_POST['title'] ?? '';
         $desc = $_POST['description'] ?? '';
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 2️⃣ Assign Role to Pending User
+    // Assign Role to Pending User
     if ($action === 'assignRole') {
         $userId = $_POST['userId'] ?? '';
         $role = $_POST['role'] ?? '';
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 3️⃣ Remove User (reset role & room)
+    // Remove User (reset role & room)
     if ($action === 'removeUser') {
         $userId = $_POST['userId'] ?? '';
 
@@ -57,9 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// -------------------------
-// Fetch data for dashboard
-// -------------------------
 
 // Fetch all projects
 $result = mysqli_query($conn, "SELECT * FROM project");
@@ -80,7 +77,6 @@ $pendingUsers = mysqli_fetch_all($result, MYSQLI_ASSOC);
 <meta charset="UTF-8">
 <title>Admin Dashboard</title>
 <style>
-/* Keep your existing CSS from your previous file */
 body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:#1f1d29; color:#e6e6e6;}
 header {background:#1abc9c; color:white; padding:16px 32px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 8px rgba(0,0,0,0.3);}
 header h1 {margin:0; font-size:22px;}

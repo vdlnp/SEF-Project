@@ -2,7 +2,6 @@
 session_start();
 include "db.php";
 
-// Ensure user is logged in and is a Reviewer
 if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit;
@@ -112,7 +111,6 @@ header h2 { margin: 0; font-size: 24px; }
     font-weight: 600;
 }
 
-/* Proposal Card */
 .proposal-card {
     background: #2c2a38;
     padding: 26px;
@@ -144,7 +142,6 @@ header h2 { margin: 0; font-size: 24px; }
 .status-pending { background: #f1c40f; color: #1f1d29; }
 .status-reviewed { background: #2ecc71; color: white; }
 
-/* Buttons */
 .btn {
     padding: 8px 18px;
     border: none;
@@ -164,7 +161,6 @@ header h2 { margin: 0; font-size: 24px; }
 .btn-danger { background: #e74c3c; color: white; }
 .btn-danger:hover { background: #c0392b; }
 
-/* Bidding summary grid */
 .bidding-summary {
     display: flex;
     flex-wrap: wrap;
@@ -181,12 +177,10 @@ header h2 { margin: 0; font-size: 24px; }
 }
 .bid-stat strong { display: block; margin-bottom: 4px; color: #1abc9c; }
 
-/* Description & Details */
 .detail-section { margin-top: 15px; }
 .detail-section h4 { margin-bottom: 6px; color: #1abc9c; }
 .expanded-details { margin-top: 10px; padding-top: 12px; border-top: 1px solid #444; }
 
-/* Attachments */
 .attachments {
     margin-top: 14px;
     padding: 14px;
@@ -197,22 +191,21 @@ header h2 { margin: 0; font-size: 24px; }
 .attachment-item {
     display: flex;
     align-items: center;
-    gap: 8px;       /* space between icon and link */
-    justify-content: flex-start; /* keep everything to the left */
+    gap: 8px;       
+    justify-content: flex-start; 
 }
-/* Attachments link styling */
+
 .attachment-item a {
-    color: #1abc9c;      /* highlight green */
-    text-decoration: none; /* remove underline */
-    font-weight: 600;     /* optional: bold for clarity */
+    color: #1abc9c;      
+    text-decoration: none; 
+    font-weight: 600;     
 }
 
 .attachment-item a:hover {
-    color: #16a085;       /* darker green on hover */
-    text-decoration: underline; /* underline on hover for feedback */
+    color: #16a085;       
+    text-decoration: underline; 
 }
 
-/* Review box */
 .review-box {
     margin-top: 20px;
     background: #1f1d29;
@@ -225,7 +218,6 @@ header h2 { margin: 0; font-size: 24px; }
     margin-bottom: 10px;
 }
 
-/* Modal */
 .modal {
     display: none;
     position: fixed;
