@@ -8,9 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = mysqli_real_escape_string($conn, $_POST['password']);
     $roomCode = strtoupper($_POST['room_code'] ?? '');
 
-    // =====================================
     // DEFAULT ADMIN ACCOUNT (HARD-CODED)
-    // =====================================
     if ($email === "user@admin.com" && $password === "admin123") {
 
         $_SESSION['user'] = [
@@ -26,9 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // =====================================
     // NORMAL USER LOGIN (DATABASE)
-    // =====================================
     $sql = "SELECT * FROM users WHERE email='$email' AND password='$password'";
     $result = mysqli_query($conn, $sql);
     $user = mysqli_fetch_assoc($result);

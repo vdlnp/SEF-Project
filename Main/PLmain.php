@@ -13,7 +13,6 @@ $userId = $user['id'];
 $userName = $user['name'];
 $userRoom = $user['room_code'];
 
-// Handle AJAX actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -588,9 +587,9 @@ input[type="number"]::-webkit-outer-spin-button {
 .btn-secondary {
     background: #34495e;
     border: none;
-    padding: 14px 30px; /* match submit-btn */
+    padding: 14px 30px; 
     color: #ecf0f1;
-    border-radius: 10px; /* match submit-btn */
+    border-radius: 10px; 
     cursor: pointer;
     font-weight: 600;
     font-size: 15px;
@@ -607,11 +606,11 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .btn-secondary, .submit-btn {
     flex: 1;
-    height: 50px;               /* same height */
-    padding: 0 30px;            /* horizontal padding only */
+    height: 50px;               
+    padding: 0 30px;            
     display: flex;
-    align-items: center;        /* vertical center */
-    justify-content: center;    /* horizontal center */
+    align-items: center;        
+    justify-content: center;    
     font-weight: 600;
     font-size: 15px;
     border-radius: 10px;
@@ -654,7 +653,6 @@ footer {
     border-top: 1px solid #333333;
 }
 
-/* Scrollbar styling */
 .modal-content::-webkit-scrollbar {
     width: 8px;
 }

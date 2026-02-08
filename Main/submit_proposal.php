@@ -2,14 +2,14 @@
 session_start();
 include "db.php";
 
-$lead_id = $_SESSION['user_id'] ?? 2; // fallback for testing
+$lead_id = $_SESSION['user_id'] ?? 2; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $project_id = $_POST['project_id'] ?? null;
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';
-    $status = 'Under Review'; // default status
+    $status = 'Under Review'; 
 
     if (!$project_id) {
         die("Error: Project not selected.");

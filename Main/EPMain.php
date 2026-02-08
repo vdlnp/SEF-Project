@@ -2,9 +2,6 @@
 session_start();
 include "db.php";
 
-/* =========================
-   1. AUTH & ROOM CHECK
-========================= */
 if (!isset($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'Executive Approver') {
     header("Location: login.php");
     exit;
@@ -15,9 +12,6 @@ if (empty($logged_in_room)) {
     die("No room assigned to your account.");
 }
 
-/* =========================
-   2. HANDLE APPROVE / DECLINE
-========================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'] ?? '';
     $proposalId = (int)($_POST['proposalId'] ?? 0);
@@ -81,9 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
-/* =========================
-   3. FETCH PROPOSALS
-========================= */
 $query = "
     SELECT p.*, u.name AS sender_name
     FROM proposals p
@@ -122,7 +113,7 @@ body {
     flex-direction:column;
 }
 
-/* Header */
+
 header {
     background:#1abc9c;
     padding:16px 32px;
@@ -148,7 +139,7 @@ header h1 { font-size:22px; }
     transform:scale(1.05);
 }
 
-/* Container */
+
 .container {
     max-width:1200px;
     width:95%;
@@ -180,7 +171,6 @@ header h1 { font-size:22px; }
     font-weight:600;
 }
 
-/* Cards */
 .submissions-list {
     display:flex;
     flex-direction:column;
@@ -233,7 +223,6 @@ header h1 { font-size:22px; }
     border-bottom:1px solid #3a3847;
 }
 
-/* Bidding Info Grid */
 .bidding-summary {
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
@@ -269,7 +258,6 @@ header h1 { font-size:22px; }
     font-size:18px;
 }
 
-/* Expandable Sections */
 .detail-section {
     margin-top:15px;
     padding-top:15px;
@@ -310,7 +298,6 @@ header h1 { font-size:22px; }
     border-bottom:none;
 }
 
-/* Attachments */
 .attachments {
     margin-top:15px;
     padding:12px;
@@ -337,7 +324,6 @@ header h1 { font-size:22px; }
     text-decoration:underline;
 }
 
-/* View More Toggle */
 .view-more-btn {
     background:#34495e;
     color:white;
@@ -363,7 +349,6 @@ header h1 { font-size:22px; }
     display:block;
 }
 
-/* Actions */
 .submission-actions {
     display:flex;
     gap:10px;
@@ -413,7 +398,6 @@ header h1 { font-size:22px; }
     opacity:0.5;
 }
 
-/* Empty State */
 .empty-state {
     text-align:center;
     padding:60px 20px;
@@ -425,7 +409,6 @@ header h1 { font-size:22px; }
     margin-bottom:15px;
 }
 
-/* Footer */
 footer {
     background:#161421;
     text-align:center;

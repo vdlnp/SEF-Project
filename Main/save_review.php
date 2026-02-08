@@ -2,7 +2,7 @@
 session_start();
 include "db.php";
 
-// Ensure user is logged in and is a Reviewer
+
 if (!isset($_SESSION['user'])) {
     echo "Unauthorized: Not logged in";
     exit;
